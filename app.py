@@ -253,7 +253,6 @@ st.markdown(f"""
         position: relative;
         overflow: hidden;
     ">
-        <!-- Patrón de puntos decorativos -->
         <div style="
             position:absolute;inset:0;
             background-image: radial-gradient(rgba(255,255,255,0.07) 1px, transparent 1px);
@@ -290,7 +289,6 @@ st.markdown(f"""
             ">Gestión Pedagógica: <strong style='color:#ffd54f;'>{LIDER}</strong>
             &nbsp;·&nbsp; Herramienta de Planificación CNEB con IA</p>
 
-            <!-- Métricas rápidas -->
             <div style="display:flex;gap:40px;justify-content:center;margin-top:32px;">
                 <div style="text-align:center;">
                     <div style="font-family:'Sora',sans-serif;font-size:1.8em;font-weight:700;color:#ffd54f;">CNEB</div>
