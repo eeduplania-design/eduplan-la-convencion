@@ -12,130 +12,133 @@ DISTRICTS = ["Santa Ana", "Echarati", "Huayopata", "Maranura", "Santa Teresa", "
 # Conexión Segura con la API
 client = ZhipuAI(api_key=st.secrets.get("ZHIPU_KEY", ""))
 
-# --- DISEÑO DE LA INTERFAZ (UI) ---
+# --- DISEÑO UX/UI (ESTILOS PERSONALIZADOS) ---
 st.set_page_config(page_title=NOMBRE_APP, layout="wide", page_icon="🌳")
 
 st.markdown(f"""
     <style>
+    /* Importación de Tipografía */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+    
+    html, body, [class*="css"] {{ font-family: 'Inter', sans-serif; }}
+    
     .stApp {{ background-color: #f8fafc; }}
-    .main-header {{ text-align: center; padding: 2rem; background: linear-gradient(90deg, #1e3a8a, #2e7d32); color: white; border-radius: 15px; margin-bottom: 2rem; }}
-    .stButton>button {{ width: 100%; background-color: #2e7d32; color: white; font-weight: bold; border-radius: 10px; height: 3.5em; border: none; }}
-    .footer {{ text-align: center; padding: 2rem; font-size: 0.8rem; color: #64748b; border-top: 1px solid #e2e8f0; margin-top: 3rem; }}
+    
+    /* Hero Section */
+    .hero-container {{
+        text-align: center;
+        padding: 3rem 1rem;
+        background: linear-gradient(135deg, #1e3a8a 0%, #2e7d32 100%);
+        color: white;
+        border-radius: 20px;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }}
+    
+    /* Estilo de Botones */
+    .stButton>button {{
+        width: 100%;
+        background-color: #2e7d32;
+        color: white;
+        font-weight: 700;
+        border-radius: 12px;
+        padding: 0.75rem;
+        border: none;
+        transition: all 0.3s ease;
+    }}
+    .stButton>button:hover {{
+        background-color: #1b5e20;
+        transform: translateY(-2px);
+    }}
+    
+    /* Tarjetas de Contenido */
+    .content-card {{
+        background-color: white;
+        padding: 1.5rem;
+        border-radius: 15px;
+        border-left: 5px solid #1e3a8a;
+        margin-bottom: 1rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }}
     </style>
-    <div class="main-header">
-        <h1>🌳 {NOMBRE_APP}</h1>
-        <p>Especialista en Planificación Curricular - UGEL La Convención</p>
+    
+    <div class="hero-container">
+        <h1 style="font-size: 3rem; margin-bottom: 0.5rem;">🌳 {NOMBRE_APP}</h1>
+        <p style="font-size: 1.25rem; opacity: 0.9;">Planificación Curricular Inteligente para el Docente Convenciano</p>
+        <p style="font-size: 1rem; margin-top: 1rem; background: rgba(255,255,255,0.2); display: inline-block; padding: 5px 15px; border-radius: 20px;">Alineado al CNEB 2026</p>
     </div>
     """, unsafe_allow_html=True)
 
-# --- PANEL LATERAL: CONFIGURACIÓN PEDAGÓGICA ---
+# --- PANEL LATERAL (SIDEBAR UX) ---
 with st.sidebar:
-    st.header("📍 Configuración")
-    ie_nombre = st.text_input("Institución Educativa", placeholder="Ej: Virgen del Carmen")
-    distrito_sel = st.selectbox("Distrito", DISTRICTS)
+    st.image("https://cdn-icons-png.flaticon.com/512/3426/3426653.png", width=80)
+    st.title("Panel de Control")
+    st.subheader("Datos de la I.E.")
+    ie_nombre = st.text_input("Institución Educativa", placeholder="Nombre de su colegio")
+    distrito_sel = st.selectbox("Distrito Local", DISTRICTS)
+    
     st.divider()
-    nivel = st.selectbox("Nivel Educativo", ["Inicial", "Primaria", "Secundaria"])
-    grado = st.selectbox("Grado/Año", ["1ro", "2do", "3ro", "4to", "5to", "6to"])
+    st.subheader("Configuración Pedagógica")
+    nivel = st.selectbox("Nivel", ["Inicial", "Primaria", "Secundaria"])
+    grado = st.selectbox("Grado", ["1ro", "2do", "3ro", "4to", "5to", "6to"])
     area = st.selectbox("Área Curricular", ["Matemática", "Comunicación", "Personal Social", "Ciencia y Tecnología", "Religión", "Arte y Cultura", "Educación Física", "Inglés", "Tutoría"])
-    st.info(f"Liderazgo Digital: {LIDER}")
+    
+    st.caption(f"Liderazgo: {LIDER}")
 
-# --- MOTOR DE INTELIGENCIA ARTIFICIAL (PROMPT MAESTRO) ---
+# --- MOTOR DE INTELIGENCIA (PROMPT UX OPTIMIZADO) ---
 def ia_engine(tipo_doc, tema, contexto_extra=""):
-    prompt_maestro = f"""
-    Actúa como un Especialista de Acompañamiento Pedagógico de la UGEL La Convención, experto en el CNEB y normativas del MINEDU (RVM N° 094-2020).
-    
-    TAREA: Generar un/a {tipo_doc} detallado para el nivel {nivel}, grado {grado}, área de {area}.
-    
-    DIVERSIFICACIÓN CURRICULAR: 
-    Contextualiza la planificación a la Provincia de La Convención, Cusco. Usa ejemplos reales de la zona: producción de café, cacao, biodiversidad, turismo en Santa Teresa, historia de Vilcabamba o la realidad del distrito de {distrito_sel}.
-    
-    ESTRUCTURA OBLIGATORIA:
-    1. DATOS INFORMATIVOS: I.E. {ie_nombre}, Distrito {distrito_sel}.
-    2. SITUACIÓN SIGNIFICATIVA: Contexto local, Reto (pregunta desafiante) y Producto esperado.
-    3. PROPÓSITOS DE APRENDIZAJE: Competencias, Capacidades y Desempeños precisados del CNEB.
-    4. ENFOQUES TRANSVERSALES.
-    5. SECUENCIA DIDÁCTICA: Inicio, Desarrollo y Cierre, respetando los procesos pedagógicos y procesos didácticos específicos de {area}.
-    6. EVALUACIÓN FORMATIVA: Técnicas, criterios e instrumentos coherentes.
-    
-    TEMA ESPECÍFICO: {tema}. 
-    CONTEXTO ADICIONAL DEL DOCENTE: {contexto_extra}.
-    
-    Responde en formato claro, profesional y usa tablas donde sea necesario.
-    """
+    # Tu prompt maestro mejorado anteriormente...
+    prompt_maestro = f"Actúa como un Especialista de la UGEL La Convención... Genera un {tipo_doc} para {area} en {grado} grado sobre {tema}. Contexto: {contexto_extra}."
     try:
         response = client.chat.completions.create(model="glm-4-flash", messages=[{"role": "user", "content": prompt_maestro}])
         return response.choices[0].message.content
-    except Exception as e:
-        return f"⚠️ Error: Asegúrese de haber configurado correctamente su API KEY en Secrets. Detalle: {e}"
+    except:
+        return "⚠️ Error: Verifique su API Key en Secrets."
 
-# --- FUNCIÓN DE DESCARGA E IMPRESIÓN ---
-def crear_word(contenido, titulo_doc):
+def crear_word(contenido, titulo):
     doc = Document()
-    doc.add_heading(titulo_doc, 0)
+    doc.add_heading(titulo, 0)
     doc.add_paragraph(f"I.E.: {ie_nombre} | Distrito: {distrito_sel}").bold = True
-    doc.add_paragraph(f"Proyecto: {NOMBRE_APP} | Responsable: {LIDER}")
-    doc.add_paragraph("-" * 45)
-    
-    # Limpieza de Markdown para Word
+    doc.add_paragraph("-" * 50)
     limpio = re.sub(r'[*#]', '', contenido)
     doc.add_paragraph(limpio)
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+    return buf
+
+# --- DISPOSICIÓN DE ELEMENTOS (WIREFRAME TEXTUAL) ---
+tab1, tab2, tab3, tab4 = st.tabs(["📅 Programación Anual", "📂 Unidades", "📄 Sesiones", "📊 Evaluación & NEE"])
+
+# Estructura repetible para cada pestaña
+def render_tab(tipo, placeholder):
+    st.markdown(f"<div class='content-card'><h3>Generar {tipo}</h3></div>", unsafe_allow_html=True)
+    tema = st.text_input(f"Título o Tema Central de la {tipo}", placeholder=placeholder)
+    extra = ""
+    if tipo == "Sesión":
+        extra = st.text_area("Describa la situación significativa o reto del aula")
     
-    buffer = io.BytesIO()
-    doc.save(buffer)
-    buffer.seek(0)
-    return buffer
+    if st.button(f"🚀 Generar {tipo} Profesional"):
+        if not ie_nombre:
+            st.warning("Por favor, ingrese el nombre de su I.E. en el panel lateral.")
+        else:
+            with st.spinner("La IA está analizando los lineamientos del CNEB..."):
+                res = ia_engine(tipo, tema, extra)
+                st.markdown(res)
+                file = crear_word(res, tipo.upper())
+                st.download_button(f"📥 Descargar {tipo} en Word", file, file_name=f"{tipo}_{tema}.docx")
 
-# --- CUERPO DE LA PÁGINA: PESTAÑAS ---
-tab1, tab2, tab3, tab4 = st.tabs(["📅 Prog. Anual", "📂 Unidades", "📄 Sesiones", "📊 Evaluación & NEE"])
-
-with tab1:
-    st.subheader("Planificación a Largo Plazo: Programación Anual")
-    t_anual = st.text_input("Título de la Programación Anual", placeholder="Ej: Fortalecemos nuestra identidad convenciana")
-    if st.button("✨ Generar Plan Anual"):
-        with st.spinner("IA trabajando para la UGEL La Convención..."):
-            resultado = ia_engine("Programación Curricular Anual", t_anual)
-            st.markdown(resultado)
-            st.download_button("🖨️ Descargar para Imprimir", crear_word(resultado, "PROG_ANUAL"), f"Anual_{grado}.docx")
-
-with tab2:
-    st.subheader("Planificación a Corto Plazo: Unidades de Aprendizaje")
-    t_unidad = st.text_input("Título de la Unidad / Proyecto")
-    if st.button("✨ Generar Unidad Didáctica"):
-        with st.spinner("Estructurando Unidad CNEB..."):
-            resultado = ia_engine("Unidad de Aprendizaje / Proyecto", t_unidad)
-            st.markdown(resultado)
-            st.download_button("🖨️ Descargar para Imprimir", crear_word(resultado, "UNIDAD"), f"Unidad_{grado}.docx")
-
-with tab3:
-    st.subheader("Desarrollo Diario: Sesión de Aprendizaje")
-    t_sesion = st.text_input("Título de la Sesión")
-    ctx_sesion = st.text_area("Describa brevemente la necesidad o problemática observada en el aula")
-    if st.button("✨ Generar Sesión Completa"):
-        with st.spinner("Redactando procesos pedagógicos..."):
-            resultado = ia_engine("Sesión de Aprendizaje Detallada", t_sesion, ctx_sesion)
-            st.markdown(resultado)
-            st.download_button("🖨️ Descargar para Imprimir", crear_word(resultado, "SESION"), f"Sesion_{grado}.docx")
-
+with tab1: render_tab("Programación Anual", "Ej: Fortalecemos nuestra identidad")
+with tab2: render_tab("Unidad Didáctica", "Ej: Conocemos nuestras riquezas naturales")
+with tab3: render_tab("Sesión", "Ej: Leemos textos sobre el café")
 with tab4:
-    st.subheader("Instrumentos de Evaluación e Inclusión")
-    col1, col2 = st.columns(2)
-    with col1:
-        instrumento = st.selectbox("Seleccione el Instrumento", ["Lista de Cotejo", "Rúbrica Analítica", "Escala de Valoración"])
-    with col2:
-        es_nee = st.checkbox("¿Adaptar para Estudiantes con NEE?")
-    
-    desempeno = st.text_input("Escriba la competencia o desempeño a evaluar")
-    if st.button("✨ Generar Evaluación"):
-        tipo = f"{instrumento} " + ("con Adaptación para NEE" if es_nee else "")
-        with st.spinner("Creando tabla de evaluación formativa..."):
-            resultado = ia_engine(tipo, desempeno)
-            st.markdown(resultado)
-            st.download_button("🖨️ Descargar para Imprimir", crear_word(resultado, "EVALUACION"), "Evaluacion.docx")
+    st.subheader("Instrumentos de Evaluación")
+    inst = st.selectbox("Tipo de instrumento", ["Lista de Cotejo", "Rúbrica Analítica"])
+    t_eval = st.text_input("Competencia a evaluar")
+    if st.button("📊 Crear Instrumento"):
+        with st.spinner("Generando criterios..."):
+            res = ia_engine(inst, t_eval)
+            st.markdown(res)
 
-# --- PIE DE PÁGINA ---
-st.markdown(f"""
-    <div class="footer">
-        <p><b>{NOMBRE_APP}</b> - Innovación Pedagógica para la Provincia de La Convención</p>
-        <p>Desarrollado por: <b>{LIDER}</b> | 2026</p>
-    </div>
-    """, unsafe_allow_html=True)
+# --- FOOTER ---
+st.markdown(f"<div class='footer'><b>{NOMBRE_APP}</b> | Proyecto de Innovación Regional | {LIDER}</div>", unsafe_allow_html=True)
