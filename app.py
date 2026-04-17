@@ -4,65 +4,142 @@ from docx import Document
 from docx.shared import Pt, RGBColor
 import io
 
-# --- CONFIGURACIÓN DE IDENTIDAD Y SEGURIDAD ---
+# --- CONFIGURACIÓN DE IDENTIDAD ---
 NOMBRE_APP = "EDUPLAN IA - LA CONVENCIÓN"
 LIDER = "Prof. Percy Tapia"
 client = ZhipuAI(api_key=st.secrets.get("ZHIPU_KEY", ""))
 
-st.set_page_config(page_title=NOMBRE_APP, layout="wide", page_icon="📝")
+st.set_page_config(page_title=NOMBRE_APP, layout="wide", page_icon="🎓")
 
-# --- PROMPT MAESTRO PROFESIONAL (INTEGRADO) ---
+# --- PROMPT MAESTRO PROFESIONAL ---
 PROMPT_SISTEMA = """
-Eres un asistente pedagógico inteligente experto en el CNEB del Perú. 
-Tu misión es apoyar a docentes de EBR (Inicial, Primaria, Secundaria).
-PRINCIPIOS: Claridad técnica, precisión en desempeños y motivación docente.
-ESTRUCTURA: Usa siempre TABLAS para Propósitos de Aprendizaje y Secuencia Didáctica.
-CONTEXTO: Incorpora la realidad de La Convención, Cusco (café, cacao, cultura local).
+Eres un asistente pedagógico inteligente especializado en educación peruana, 
+diseñado para apoyar a docentes de Educación Básica Regular (EBR) en todos sus niveles y modalidades.
+
+Tu misión es facilitar la planificación, diseño y evaluación de experiencias de aprendizaje 
+alineadas al Currículo Nacional de Educación Básica (CNEB) del MINEDU.
+
+### PRINCIPIOS DE RESPUESTA:
+1. **Claridad:** Explica paso a paso con ejemplos contextualizados en el sistema peruano (áreas, competencias y capacidades).
+2. **Precisión:** Usa terminología oficial del CNEB. Verifica que estándares y desempeños correspondan al grado/ciclo solicitado.
+3. **Motivación:** Tono cálido y positivo. Usa verbos de acción: "Crea", "Transforma", "Diseña".
+4. **Utilidad:** Entrega material listo para el aula (fichas, rúbricas, plantillas).
+
+### FUNCIONES CLAVE:
+- **Sesiones de Aprendizaje:** Generar estructura completa (Inicio, Desarrollo, Cierre) con códigos CNEB.
+- **Planificación Curricular:** Elaborar unidades, proyectos y experiencias de aprendizaje articuladas.
+- **Validación Normativa:** Corregir y ajustar competencias y desempeños según documentos del MINEDU.
+- **Material Didáctico:** Crear rúbricas, listas de cotejo, fichas de trabajo y estrategias de inclusión.
+- **Enfoques Transversales:** Alinear cada propuesta a los 7 enfoques del CNEB.
+
+### ESTILO Y FORMATO:
+- **Estructura:** Usa encabezados, negritas y tablas para facilitar la lectura.
+- **Contextualización:** Referencia festividades, realidades regionales (costa, sierra, selva) y contextos urbanos/rurales de Perú.
+- **Interacción:** Si falta información (grado, ciclo, área), solicítala antes de generar el contenido.
+
+### ESTRUCTURA DE SALIDA SEGÚN PEDIDO:
+- **Sesiones:** Título, Duración, Propósitos (Competencias/Capacidades), Criterios, Secuencia Didáctica y Evaluación.
+- **Proyectos:** Situación significativa, Producto, Secuencia de actividades y Evaluación Sumativa.
+- **Correcciones:** Feedback justificando con base en el CNEB.
 """
 
-# --- ESTILOS CSS PROFESIONALES ---
+# --- ESTILOS CSS CON ANIMACIONES Y COLORES PREMIUM ---
 st.markdown("""
     <style>
-    .main { background-color: #f4f7f9; }
-    .stTabs [data-baseweb="tab-list"] { gap: 10px; }
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+    
+    html, body, [class*="st-"] {
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .main { 
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); 
+    }
+
+    /* Animación de entrada para tarjetas */
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .stTabs [data-baseweb="tab-list"] { gap: 15px; }
+    
     .stTabs [data-baseweb="tab"] {
         background-color: #ffffff;
-        border-radius: 10px 10px 0 0;
-        padding: 12px 25px;
-        font-weight: bold;
-        border: 1px solid #e0e0e0;
+        border-radius: 12px 12px 0 0;
+        padding: 15px 30px;
+        font-weight: 600;
+        color: #1e3a8a;
+        transition: all 0.3s ease;
+        border: 1px solid #e2e8f0;
     }
-    .stTabs [aria-selected="true"] { background-color: #1e40af !important; color: white !important; }
+
+    .stTabs [aria-selected="true"] { 
+        background-color: #1e3a8a !important; 
+        color: #fbbf24 !important; /* Dorado alegre */
+        box-shadow: 0 -4px 10px rgba(0,0,0,0.1);
+    }
+
+    /* Tarjetas con Efecto de Elevación */
     .card {
         background-color: #ffffff;
-        padding: 25px;
-        border-radius: 15px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-        border-left: 5px solid #1e40af;
-        margin-bottom: 20px;
+        padding: 30px;
+        border-radius: 20px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        border-left: 8px solid #1e3a8a;
+        margin-bottom: 25px;
+        animation: fadeInUp 0.6s ease-out;
+        transition: transform 0.3s ease;
     }
+    
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+    }
+
+    /* Botones con Gradiente y Brillo */
     .stButton>button {
         width: 100%;
-        background: linear-gradient(90deg, #1e40af 0%, #3b82f6 100%);
+        background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
         color: white;
         border: none;
-        padding: 15px;
-        border-radius: 10px;
-        font-weight: bold;
-        transition: 0.3s;
+        padding: 18px;
+        border-radius: 12px;
+        font-weight: 600;
+        letter-spacing: 1px;
+        transition: all 0.4s ease;
+        text-transform: uppercase;
     }
-    .stButton>button:hover { transform: scale(1.02); box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4); }
+
+    .stButton>button:hover {
+        background: linear-gradient(135deg, #3b82f6 0%, #1e3a8a 100%);
+        box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+        transform: scale(1.01);
+    }
+
+    /* Títulos Sobrios */
+    h1, h2, h3 {
+        color: #0f172a;
+        font-weight: 600;
+    }
+    
+    /* Sidebar Estilizada */
+    [data-testid="stSidebar"] {
+        background-color: #0f172a;
+        color: white;
+    }
+    [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2 {
+        color: #fbbf24;
+    }
     </style>
 """, unsafe_allow_html=True)
 
 # --- FUNCIONES DE LÓGICA ---
 def generar_word_profesional(titulo, contenido, datos):
     doc = Document()
-    # Encabezado
     header = doc.add_heading(titulo, 0)
     header.alignment = 1
     
-    # Cuadro de Datos Informativos
     table = doc.add_table(rows=4, cols=2)
     table.style = 'Table Grid'
     info = [
@@ -76,7 +153,6 @@ def generar_word_profesional(titulo, contenido, datos):
         table.cell(i, 1).text = val
 
     doc.add_paragraph("\n")
-    # Contenido
     doc.add_paragraph(contenido)
     
     buf = io.BytesIO()
@@ -98,83 +174,78 @@ def llamar_ia_pedagogica(tipo, detalles):
         return "⚠️ Error de conexión. Verifique su API Key o conexión a internet."
 
 # --- INTERFAZ PRINCIPAL ---
-st.markdown(f"<h1 style='text-align: center; color: #1e40af;'>🏛️ {NOMBRE_APP}</h1>", unsafe_allow_html=True)
-st.markdown(f"<p style='text-align: center;'>Líder de Innovación: <b>{LIDER}</b> | Alineado al CNEB 2026</p>", unsafe_allow_html=True)
+st.markdown(f"""
+    <div style="text-align: center; padding: 20px;">
+        <h1 style="font-size: 3em; margin-bottom: 0;">🏛️ {NOMBRE_APP}</h1>
+        <p style="color: #64748b; font-size: 1.2em;">Gestión Pedagógica: <b>{LIDER}</b> | Innovación 2026</p>
+    </div>
+""", unsafe_allow_html=True)
 
-# --- SIDEBAR: DATOS GENERALES (Estructura Limpia) ---
+# --- SIDEBAR PROFESIONAL ---
 with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/3426/3426653.png", width=100)
-    st.header("Configuración")
-    ie_nombre = st.text_input("Nombre de la I.E.", "IE La Convención")
+    st.markdown(f"<h2 style='text-align: center;'>⚙️ Panel de Control</h2>", unsafe_allow_html=True)
+    st.divider()
+    ie_nombre = st.text_input("Institución Educativa", "IE La Convención")
     nivel = st.selectbox("Nivel Educativo", ["Inicial", "Primaria", "Secundaria"])
     
+    # Lógica de Áreas y Grados mejorada
     if nivel == "Inicial":
-        grados = ["3 años", "4 años", "5 años"]
-        areas = ["Personal Social", "Psicomotriz", "Comunicación", "Castellano como segunda lengua", "Descubrimiento del mundo", "Matemática"]
+        grados, areas = ["3 años", "4 años", "5 años"], ["Personal Social", "Psicomotriz", "Comunicación", "Matemática"]
     elif nivel == "Primaria":
-        grados = ["1ro", "2do", "3ro", "4to", "5to", "6to"]
-        areas = ["Matemática", "Comunicación", "Inglés", "Personal Social", "Educación Física", "Arte y Cultura", "Ciencia y Tecnología", "Educación Religiosa", "Tutoría"]
+        grados, areas = ["1ro", "2do", "3ro", "4to", "5to", "6to"], ["Matemática", "Comunicación", "Personal Social", "Ciencia y Tecnología", "Religión", "Arte", "Inglés"]
     else:
-        grados = ["1ro", "2do", "3ro", "4to", "5to"]
-        areas = ["Matemática", "Comunicación", "Inglés", "Arte y Cultura", "Ciencias Sociales", "DPCC", "Educación Física", "Educación Religiosa", "Ciencia y Tecnología", "EPT", "Tutoría"]
+        grados, areas = ["1ro", "2do", "3ro", "4to", "5to"], ["Matemática", "Comunicación", "Ciencias Sociales", "DPCC", "Ciencia y Tecnología", "EPT", "Inglés"]
     
     grado_sel = st.selectbox("Grado/Sección", grados)
     area_sel = st.selectbox("Área Curricular", areas)
+    st.info(f"📍 Contexto: La Convención, Cusco")
 
-# --- CUERPO DE TRABAJO (TABS) ---
+# --- CONTENIDO DINÁMICO ---
 tab1, tab2, tab3 = st.tabs(["📅 PROGRAMACIÓN ANUAL", "📂 UNIDAD DIDÁCTICA", "🚀 SESIÓN DE APRENDIZAJE"])
 
-# 1. PROGRAMACIÓN ANUAL
 with tab1:
     st.markdown("<div class='card'>", unsafe_allow_html=True)
-    st.subheader("Generador de Programación Anual")
-    situacion = st.text_area("Situación Significativa del Año", placeholder="Ej: Fortalecemos nuestra convivencia frente a los retos del cambio climático en nuestra provincia...")
-    if st.button("✨ GENERAR PLAN ANUAL"):
-        with st.spinner("Diseñando Planificación a largo plazo..."):
-            detalles = f"Nivel: {nivel}, Grado: {grado_sel}, Área: {area_sel}, Situación: {situacion}, IE: {ie_nombre}"
+    st.subheader("📋 Planificación Anual")
+    situacion = st.text_area("Situación Significativa (Reto del año)", placeholder="Describa el desafío principal para sus estudiantes...")
+    if st.button("✨ GENERAR PLANIFICACIÓN ANUAL"):
+        with st.spinner("🚀 Procesando datos con IA..."):
+            detalles = f"Nivel: {nivel}, Grado: {grado_sel}, Área: {area_sel}, Situación: {situacion}"
             resultado = llamar_ia_pedagogica("Programación Anual", detalles)
             st.markdown(resultado)
-            st.download_button("📥 Descargar Plan Anual", generar_word_profesional("Programación Anual", resultado, {"ie": ie_nombre, "nivel": nivel, "grado": grado_sel, "area": area_sel}), "Programacion_Anual.docx")
+            st.download_button("📥 Descargar Plan Anual", generar_word_profesional("Plan Anual", resultado, {"ie": ie_nombre, "nivel": nivel, "grado": grado_sel, "area": area_sel}), "Plan_Anual.docx")
     st.markdown("</div>", unsafe_allow_html=True)
 
-# 2. UNIDAD DIDÁCTICA
 with tab2:
     st.markdown("<div class='card'>", unsafe_allow_html=True)
-    st.subheader("Generador de Unidad de Aprendizaje / Proyecto")
-    titulo_u = st.text_input("Título de la Unidad", placeholder="Ej: Valoramos los productos agrícolas de nuestra zona")
-    trimestre = st.selectbox("Periodo", ["I Trimestre / Bimestre", "II Trimestre / Bimestre", "III Trimestre / Bimestre", "IV Bimestre"])
-    if st.button("📂 GENERAR UNIDAD"):
-        with st.spinner("Estructurando Unidad Didáctica..."):
-            detalles = f"Título: {titulo_u}, Periodo: {trimestre}, Área: {area_sel}, Grado: {grado_sel}, Nivel: {nivel}"
+    st.subheader("📦 Unidad de Aprendizaje")
+    titulo_u = st.text_input("Título de la Unidad", placeholder="Ej: Conocemos la biodiversidad de nuestra selva")
+    if st.button("📂 GENERAR UNIDAD DIDÁCTICA"):
+        with st.spinner("🛠️ Estructurando Unidad..."):
+            detalles = f"Unidad: {titulo_u}, Área: {area_sel}, Grado: {grado_sel}, Nivel: {nivel}"
             resultado = llamar_ia_pedagogica("Unidad Didáctica", detalles)
             st.markdown(resultado)
-            st.download_button("📥 Descargar Unidad", generar_word_profesional(titulo_u, resultado, {"ie": ie_nombre, "nivel": nivel, "grado": grado_sel, "area": area_sel}), "Unidad_Didactica.docx")
+            st.download_button("📥 Descargar Unidad", generar_word_profesional(titulo_u, resultado, {"ie": ie_nombre, "nivel": nivel, "grado": grado_sel, "area": area_sel}), "Unidad.docx")
     st.markdown("</div>", unsafe_allow_html=True)
 
-# 3. SESIÓN DE APRENDIZAJE
 with tab3:
     st.markdown("<div class='card'>", unsafe_allow_html=True)
-    st.subheader("Generador de Sesión de Aprendizaje (Estructura CNEB)")
-    col1, col2 = st.columns(2)
-    titulo_s = col1.text_input("Título de la Sesión", placeholder="Ej: Leemos un cuento sobre el origen del cacao")
-    duracion = col2.text_input("Duración (min)", "90")
-    
-    enfoque = st.selectbox("Enfoque Transversal", ["Enfoque de Derechos", "Enfoque Inclusivo", "Enfoque Intercultural", "Enfoque Igualdad de Género", "Enfoque Ambiental", "Enfoque Orientación al Bien Común", "Enfoque Búsqueda de la Excelencia"])
-    
+    st.subheader("📝 Sesión de Aprendizaje")
     c1, c2 = st.columns(2)
-    nee = c1.toggle("Inclusión (NEE)")
-    metodologia = c2.selectbox("Metodología", ["Aprendizaje Basado en Proyectos (ABP)", "Aprendizaje Basado en Problemas", "Aula Invertida", "Gamificación"])
-
-    if st.button("🚀 GENERAR SESIÓN COMPLETA"):
+    titulo_s = c1.text_input("Título de la Sesión", placeholder="Ej: Elaboramos abono orgánico con residuos")
+    duracion = c2.text_input("Minutos", "90")
+    
+    nee = st.toggle("🧠 Atención a la Diversidad (NEE)")
+    
+    if st.button("🚀 GENERAR SESIÓN MAESTRA"):
         if titulo_s:
-            with st.spinner("Creando sesión detallada paso a paso..."):
-                detalles = f"Sesión: {titulo_s}, Duración: {duracion}, Enfoque: {enfoque}, NEE: {nee}, Metodología: {metodologia}, Área: {area_sel}, Grado: {grado_sel}, Nivel: {nivel}"
+            with st.spinner("🖋️ Redactando sesión paso a paso..."):
+                detalles = f"Sesión: {titulo_s}, Duración: {duracion}, NEE: {nee}, Área: {area_sel}, Grado: {grado_sel}, Nivel: {nivel}"
                 resultado = llamar_ia_pedagogica("Sesión de Aprendizaje", detalles)
                 st.markdown(resultado)
-                st.download_button("📥 Descargar Sesión", generar_word_profesional(titulo_s, resultado, {"ie": ie_nombre, "nivel": nivel, "grado": grado_sel, "area": area_sel}), f"Sesion_{grado_sel}.docx")
+                st.download_button("📥 Descargar Sesión", generar_word_profesional(titulo_s, resultado, {"ie": ie_nombre, "nivel": nivel, "grado": grado_sel, "area": area_sel}), f"Sesion.docx")
         else:
-            st.error("Por favor, asigne un título a la sesión.")
+            st.error("⚠️ Ingrese un título para continuar.")
     st.markdown("</div>", unsafe_allow_html=True)
 
 # --- FOOTER ---
-st.markdown("<br><hr><center><small>EduPlan IA - Innovación para el Magisterio de La Convención, Cusco © 2026</small></center>", unsafe_allow_html=True)
+st.markdown(f"<br><hr><center><small>EduPlan IA - Desarrollado para la Provincia de La Convención, Cusco. Gestión {LIDER} © 2026</small></center>", unsafe_allow_html=True)
