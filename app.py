@@ -148,22 +148,23 @@ def generar_word(tipo, contenido, metadatos):
     doc.add_heading("II. DESARROLLO DE LA PLANIFICACIÓN", level=2)
     
     # Insertar el contenido de la IA
-    # Nota: La IA devuelve markdown, aquí lo pegamos como texto limpio. 
-    # Para formatos complejos de tabla se requeriría un parseo más avanzado.
     doc.add_paragraph(contenido)
 
     # Pie de página para firmas
     doc.add_paragraph("\n\n")
+    # Creamos una tabla invisible para las firmas
     signature_table = doc.add_table(rows=1, cols=2)
-    signature_table.set_distance(Inches(0.5), Inches(0.5), Inches(0.5), Inches(0.5))
+    signature_table.autofit = True
     
-    c1 = signature_table.cell(0, 0).paragraphs[0]
-    c1.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    c1.add_run("__________________________\nDocente de Aula")
+    # Celda Docente
+    p1 = signature_table.cell(0, 0).paragraphs[0]
+    p1.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p1.add_run("__________________________\nDocente de Aula").bold = True
     
-    c2 = signature_table.cell(0, 1).paragraphs[0]
-    c2.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    c2.add_run("__________________________\nDirector / V°B°")
+    # Celda Director
+    p2 = signature_table.cell(0, 1).paragraphs[0]
+    p2.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p2.add_run("__________________________\nDirector / V°B°").bold = True
 
     buf = io.BytesIO()
     doc.save(buf)
