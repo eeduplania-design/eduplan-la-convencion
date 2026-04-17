@@ -2,7 +2,8 @@ import io
 import streamlit as st
 from zhipuai import ZhipuAI
 from docx import Document
-from docx.shared import Pt
+from docx.shared import Pt, Inches
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 # ── 1. CONFIGURACIÓN DE PÁGINA ──
 st.set_page_config(
@@ -16,7 +17,6 @@ st.set_page_config(
 NOMBRE_APP = "EDUPLAN IA - LA CONVENCIÓN"
 LIDER = "Prof. Percy Tapia"
 
-# Diccionario de Competencias por Área (CNEB)
 COMPETENCIAS_POR_AREA = {
     "Matemática": [
         "Resuelve problemas de cantidad",
@@ -74,7 +74,7 @@ PROMPT_SISTEMA = (
     "Eres un asistente pedagógico de élite experto en el CNEB del Perú y el Currículo Regional de Cusco. "
     "Tu objetivo es ayudar a docentes de La Convención a planificar con precisión técnica.\n\n"
     "ESTRUCTURA OBLIGATORIA:\n"
-    "1. Usa TABLAS detalladas para la secuencia didáctica y matrices.\n"
+    "1. Usa TABLAS detalladas para la secuencia didáctica y matrices de evaluación.\n"
     "2. Incluye obligatoriamente: Competencias, Capacidades, Desempeños y Criterios de Evaluación.\n"
     "3. Contextualización: Integra el entorno de La Convención (clima, agricultura, historia local).\n"
     "4. Tono: Académico, motivador y respetuoso con la labor docente."
@@ -87,7 +87,6 @@ st.markdown("""
     html, body, [class*="st-"] { font-family: 'Inter', sans-serif; }
     h1, h2, h3 { font-family: 'Sora', sans-serif !important; }
     .main { background-color: #f1f5f9; }
-    .stSelectbox, .stMultiSelect { margin-bottom: 1rem; }
     .card {
         background: white;
         padding: 25px;
@@ -103,26 +102,69 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# ── 6. LÓGICA DE APOYO ──
-def generar_word(titulo, contenido, metadatos):
+# ── 6. LÓGICA DE APOYO (MEJORADA PARA MINEDU/CNEB) ──
+def generar_word(tipo, contenido, metadatos):
     doc = Document()
-    header = doc.add_heading(titulo, level=0)
-    header.alignment = 1
     
-    table = doc.add_table(rows=5, cols=2)
+    # Estilo base
+    style = doc.styles['Normal']
+    font = style.font
+    font.name = 'Arial'
+    font.size = Pt(11)
+
+    # Encabezado Oficial
+    p = doc.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = p.add_run("“Año de la Unidad, la Paz y el Desarrollo”")
+    run.italic = True
+    run.font.size = Pt(10)
+
+    title = doc.add_heading(tipo.upper(), level=1)
+    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    
+    doc.add_paragraph() # Espacio
+    
+    # Tabla de Datos Informativos (Formato MINEDU)
+    doc.add_heading("I. DATOS INFORMATIVOS", level=2)
+    table = doc.add_table(rows=6, cols=2)
     table.style = 'Table Grid'
-    data = [
-        ("I.E.", metadatos['ie']),
-        ("Nivel/Grado", f"{metadatos['nivel']} - {metadatos['grado']}"),
-        ("Área", metadatos['area']),
-        ("Enfoque", metadatos['enfoque']),
-        ("Situación", metadatos['situacion'])
-    ]
-    for i, (label, val) in enumerate(data):
-        table.cell(i, 0).text = label
-        table.cell(i, 1).text = str(val)
     
-    doc.add_paragraph("\n" + contenido)
+    items = [
+        ("INSTITUCIÓN EDUCATIVA", metadatos['ie']),
+        ("NIVEL / GRADO / SECCIÓN", f"{metadatos['nivel']} - {metadatos['grado']}"),
+        ("ÁREA CURRICULAR", metadatos['area']),
+        ("DOCENTE", LIDER),
+        ("ENFOQUES TRANSVERSALES", str(metadatos['enfoque'])),
+        ("SITUACIÓN / TEMA", metadatos['situacion'])
+    ]
+    
+    for i, (label, val) in enumerate(items):
+        row = table.rows[i].cells
+        row[0].text = label
+        row[0].paragraphs[0].runs[0].bold = True
+        row[1].text = str(val)
+
+    doc.add_paragraph()
+    doc.add_heading("II. DESARROLLO DE LA PLANIFICACIÓN", level=2)
+    
+    # Insertar el contenido de la IA
+    # Nota: La IA devuelve markdown, aquí lo pegamos como texto limpio. 
+    # Para formatos complejos de tabla se requeriría un parseo más avanzado.
+    doc.add_paragraph(contenido)
+
+    # Pie de página para firmas
+    doc.add_paragraph("\n\n")
+    signature_table = doc.add_table(rows=1, cols=2)
+    signature_table.set_distance(Inches(0.5), Inches(0.5), Inches(0.5), Inches(0.5))
+    
+    c1 = signature_table.cell(0, 0).paragraphs[0]
+    c1.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    c1.add_run("__________________________\nDocente de Aula")
+    
+    c2 = signature_table.cell(0, 1).paragraphs[0]
+    c2.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    c2.add_run("__________________________\nDirector / V°B°")
+
     buf = io.BytesIO()
     doc.save(buf)
     buf.seek(0)
@@ -142,29 +184,24 @@ def procesar_ia(tipo, prompt_user):
     except Exception as e:
         return f"❌ Error en la IA: {str(e)}"
 
-# ── 7. INTERFAZ DE USUARIO (HEADER) ──
+# ── 7. INTERFAZ DE USUARIO ──
 st.markdown(f"""
     <div style="background: linear-gradient(135deg, #0f172a 0%, #1e40af 100%); 
                 padding: 2.5rem; border-radius: 1.2rem; text-align: center; color: white; margin-bottom: 2rem;">
         <h1 style="color: white; margin:0;">🏛️ {NOMBRE_APP}</h1>
         <p style="font-size: 1.2rem; opacity: 0.9;">Planificación Curricular Inteligente 2026</p>
-        <span style="background: rgba(255,255,255,0.2); padding: 5px 15px; border-radius: 20px; font-size: 0.8rem;">
-            Responsable: {LIDER}
-        </span>
     </div>
 """, unsafe_allow_html=True)
 
 # ── 8. SIDEBAR ──
 with st.sidebar:
-    st.image("https://img.icons8.com/fluency/96/teacher.png", width=80)
     st.header("Datos Generales")
     ie_nombre = st.text_input("Institución Educativa", "I.E. La Convención")
     nivel = st.radio("Nivel Educativo", ["Primaria", "Secundaria"], horizontal=True)
     grado = st.selectbox("Grado", ["1°", "2°", "3°", "4°", "5°", "6°"])
     area = st.selectbox("Área Curricular", list(COMPETENCIAS_POR_AREA.keys()))
-    
     st.divider()
-    st.caption("EDUPLAN IA utiliza modelos de lenguaje avanzados para asistir al docente.")
+    st.caption(f"Gestión: {LIDER}")
 
 # ── 9. CUERPO PRINCIPAL (TABS) ──
 tabs = st.tabs(["📅 PROG. ANUAL", "📂 UNIDAD", "🚀 SESIÓN"])
@@ -190,8 +227,8 @@ with tabs[0]:
             with st.spinner("Construyendo visión anual..."):
                 res = procesar_ia("Programación Anual", p_user)
                 st.markdown(res)
-                f = generar_word("Programación Anual", res, {"ie": ie_nombre, "nivel": nivel, "grado": grado, "area": area, "enfoque": enfoques, "situacion": situacion})
-                st.download_button("📥 Descargar Word", f, "Plan_Anual.docx")
+                f = generar_word("Programación Anual", res, {"ie": ie_nombre, "nivel": nivel, "grado": grado, "area": area, "enfoque": ", ".join(enfoques), "situacion": situacion})
+                st.download_button("📥 Descargar Word Oficial", f, "Plan_Anual.docx")
     st.markdown('</div>', unsafe_allow_html=True)
 
 # --- TAB 2: UNIDAD DIDÁCTICA ---
@@ -215,8 +252,8 @@ with tabs[1]:
             with st.spinner("Diseñando unidad pedagógica..."):
                 res = procesar_ia("Unidad de Aprendizaje", p_user)
                 st.markdown(res)
-                f = generar_word("Unidad Didáctica", res, {"ie": ie_nombre, "nivel": nivel, "grado": grado, "area": area, "enfoque": u_enf, "situacion": u_titulo})
-                st.download_button("📥 Descargar Word", f, "Unidad_Aprendizaje.docx")
+                f = generar_word("Unidad de Aprendizaje", res, {"ie": ie_nombre, "nivel": nivel, "grado": grado, "area": area, "enfoque": u_enf, "situacion": u_titulo})
+                st.download_button("📥 Descargar Word Oficial", f, "Unidad_Aprendizaje.docx")
     st.markdown('</div>', unsafe_allow_html=True)
 
 # --- TAB 3: SESIÓN DE APRENDIZAJE ---
@@ -240,6 +277,6 @@ with tabs[2]:
             with st.spinner("Redactando secuencia didáctica..."):
                 res = procesar_ia("Sesión de Aprendizaje", p_user)
                 st.markdown(res)
-                f = generar_word("Sesión de Aprendizaje", res, {"ie": ie_nombre, "nivel": nivel, "grado": grado, "area": area, "enfoque": "Variable", "situacion": s_titulo})
-                st.download_button("📥 Descargar Word", f, "Sesion_Aprendizaje.docx")
+                f = generar_word("Sesión de Aprendizaje", res, {"ie": ie_nombre, "nivel": nivel, "grado": grado, "area": area, "enfoque": "Transversal", "situacion": s_titulo})
+                st.download_button("📥 Descargar Word Oficial", f, "Sesion_Aprendizaje.docx")
     st.markdown('</div>', unsafe_allow_html=True)
