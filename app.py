@@ -2,105 +2,108 @@ import streamlit as st
 from zhipuai import ZhipuAI
 from docx import Document
 import io
-import re
 
-# --- CONFIGURACIÓN E IDENTIDAD ---
+# --- CONFIGURACIÓN DE IDENTIDAD ---
 NOMBRE_APP = "EDUPLAN IA - LA CONVENCIÓN"
 LIDER = "Prof. Percy Tapia"
-DISTRITOS = ["Santa Ana", "Echarati", "Huayopata", "Maranura", "Santa Teresa", "Vilcabamba", "Quellouno", "Pichari", "Kimbiri", "Inkawasi", "Villa Virgen", "Villa Kintiarina", "Ocobamba"]
-
-# Conexión con la API
 client = ZhipuAI(api_key=st.secrets.get("ZHIPU_KEY", ""))
 
-# --- ESTILOS VISUALES (UX/UI) ---
-st.set_page_config(page_title=NOMBRE_APP, layout="wide")
+st.set_page_config(page_title=NOMBRE_APP, layout="wide", page_icon="📝")
+
+# --- ESTILOS VISUALES ---
 st.markdown("""
     <style>
-    .main { background-color: #f5f7f9; }
-    .stButton>button { width: 100%; background-color: #2e7d32; color: white; border-radius: 10px; font-weight: bold; height: 3em; }
-    .header-box { background: white; padding: 25px; border-bottom: 5px solid #1e3a8a; border-radius: 10px; text-align: center; margin-bottom: 20px; }
-    .card { background: white; padding: 15px; border-radius: 10px; border-left: 5px solid #2e7d32; margin-bottom: 10px; }
+    .main { background-color: #f8fafc; }
+    .stButton>button { background-color: #1e88e5; color: white; width: 100%; font-weight: bold; border-radius: 8px; }
+    .group-container { border: 1px solid #e2e8f0; border-radius: 12px; padding: 25px; background-color: white; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    .group-title { color: #1e3a8a; font-weight: bold; margin-bottom: 15px; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; }
     </style>
-    <div class="header-box">
-        <h1 style="color: #1e3a8a; margin:0;">🏛️ SISTEMA DE PLANIFICACIÓN CURRICULAR</h1>
-        <p style="color: #666;">Alineado al CNEB | Provincia de La Convención, Cusco</p>
-    </div>
-    """, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
-# --- LÓGICA DE EXPORTACIÓN A WORD CON TABLAS ---
-def exportar_a_word(titulo_doc, contenido, ie, dist):
-    doc = Document()
-    doc.add_heading(titulo_doc, 0)
-    doc.add_paragraph(f"I.E.: {ie} | Distrito: {dist}").bold = True
-    doc.add_paragraph(f"Responsable: {LIDER}").italic = True
-    
-    lineas = contenido.split('\n')
-    tabla_pendiente = []
-    
-    for linea in lineas:
-        if '|' in linea and '---' not in linea:
-            cols = [c.strip() for c in linea.split('|') if c.strip()]
-            if cols: tabla_pendiente.append(cols)
-        else:
-            if tabla_pendiente:
-                table = doc.add_table(rows=len(tabla_pendiente), cols=len(tabla_pendiente[0]))
-                table.style = 'Table Grid'
-                for i, fila in enumerate(tabla_pendiente):
-                    for j, valor in enumerate(fila):
-                        table.cell(i, j).text = valor
-                tabla_pendiente = []
-            if linea.strip():
-                doc.add_paragraph(linea.replace('#', '').replace('*', ''))
-                
-    buffer = io.BytesIO()
-    doc.save(buffer)
-    buffer.seek(0)
-    return buffer
+# --- PROMPT MAESTRO (EL NUEVO "CEREBRO" PEDAGÓGICO) ---
+PROMPT_SISTEMA = """
+Eres un asistente pedagógico inteligente especializado en educación peruana, diseñado específicamente para apoyar a docentes de EBR en todos los niveles y modalidades del CNEB (MINEDU).
+Tus principios son: Claridad (paso a paso), Precisión (terminología oficial CNEB), Motivación (tono positivo y cálido) y Utilidad (listo para aplicar).
+Funciones clave: Generar sesiones, unidades y proyectos en tablas; corregir competencias; diseñar estrategias de inclusión (NEE) y alinear enfoques transversales.
+Estilo: Breve pero completo, estructura secuencial, llamados a la acción y 100% contextualizado en la realidad peruana (festividades, regiones, contextos rurales/urbanos).
+"""
 
-# --- MOTOR DE IA ---
-def consultar_ia(tipo, tema, contexto, grado, area):
-    prompt = f"Actúa como experto CNEB. Genera un/a {tipo} para {area}, {grado}. Tema: {tema}. Contexto: {contexto}. Usa TABLAS para propósitos y secuencia didáctica."
+def consultar_ia(tipo, tema, datos_formulario):
+    # Combinamos el Prompt Maestro con los datos específicos del docente
+    prompt_usuario = f"""
+    PEDIDO: Generar {tipo}.
+    DATOS DEL DOCENTE:
+    - Área: {datos_formulario['area']} | Grado: {datos_formulario['grado']}
+    - Título: {tema} | Duración: {datos_formulario['duracion']} min.
+    - Contexto/Recursos: {datos_formulario['contexto']}
+    - Inclusión NEE: {datos_formulario['nee']} | Guía Detallada: {datos_formulario['guia']}
+    
+    Por favor, responde siguiendo estrictamente tu identidad de asistente pedagógico CNEB.
+    """
     try:
-        response = client.chat.completions.create(model="glm-4-flash", messages=[{"role": "user", "content": prompt}])
+        response = client.chat.completions.create(
+            model="glm-4-flash", 
+            messages=[
+                {"role": "system", "content": PROMPT_SISTEMA},
+                {"role": "user", "content": prompt_usuario}
+            ]
+        )
         return response.choices[0].message.content
-    except: return "⚠️ Error de conexión. Revisa tu API KEY."
+    except:
+        return "⚠️ Error: Asegúrese de que su ZHIPU_KEY esté configurada correctamente en los Secrets de Streamlit."
 
-# --- INTERFAZ ---
-with st.sidebar:
-    st.header("⚙️ Datos Generales")
-    ie = st.text_input("I.E.", "Virgen del Carmen")
-    dist = st.selectbox("Distrito", DISTRITOS)
-    area = st.selectbox("Área", ["Comunicación", "Matemática", "Personal Social", "Ciencia y Tecnología"])
-    grado = st.selectbox("Grado", ["1ro", "2do", "3ro", "4to", "5to", "6to"])
+# --- INTERFAZ TIPO FORMULARIO ---
+st.title("🏛️ Portal de Planificación Curricular")
+st.write(f"Gestión e Innovación: **{LIDER}** | alineado al CNEB 2026")
 
-tab1, tab2, tab3 = st.tabs(["📅 PROGRAMACIÓN ANUAL", "📂 UNIDAD DIDÁCTICA", "📄 SESIÓN DE APRENDIZAJE"])
+tab1, tab2, tab3 = st.tabs(["📅 Programación Anual", "📂 Unidad Didáctica", "🚀 SESIÓN DE APRENDIZAJE"])
 
-# Sección 1: Programación Anual
-with tab1:
-    st.markdown("<div class='card'><h3>Planificación Anual</h3></div>", unsafe_allow_html=True)
-    tema_anual = st.text_input("Título Anual", key="t1")
-    ctx_anual = st.text_area("Contexto/Metas", key="c1")
-    if st.button("✨ Generar Anual", key="b1"):
-        res = consultar_ia("Programación Anual", tema_anual, ctx_anual, grado, area)
-        st.markdown(res)
-        st.download_button("📥 Descargar Word", exportar_a_word("Plan Anual", res, ie, dist), f"Anual_{tema_anual}.docx", key="d1")
-
-# Sección 2: Unidad Didáctica
-with tab2:
-    st.markdown("<div class='card'><h3>Unidad Didáctica</h3></div>", unsafe_allow_html=True)
-    tema_uni = st.text_input("Título de la Unidad", key="t2")
-    ctx_uni = st.text_area("Situación Significativa", key="c2")
-    if st.button("✨ Generar Unidad", key="b2"):
-        res = consultar_ia("Unidad Didáctica", tema_uni, ctx_uni, grado, area)
-        st.markdown(res)
-        st.download_button("📥 Descargar Word", exportar_a_word("Unidad", res, ie, dist), f"Unidad_{tema_uni}.docx", key="d2")
-
-# Sección 3: Sesión de Aprendizaje
+# --- LÓGICA DE LA SESIÓN (INTERFAZ INTUITIVA) ---
 with tab3:
-    st.markdown("<div class='card'><h3>Sesión de Aprendizaje</h3></div>", unsafe_allow_html=True)
-    tema_ses = st.text_input("Título de la Sesión", key="t3")
-    ctx_ses = st.text_area("Reto del día", key="c3")
-    if st.button("✨ Generar Sesión", key="b3"):
-        res = consultar_ia("Sesión de Aprendizaje", tema_ses, ctx_ses, grado, area)
-        st.markdown(res)
-        st.download_button("📥 Descargar Word", exportar_a_word("Sesion", res, ie, dist), f"Sesion_{tema_ses}.docx", key="d3")
+    with st.container():
+        st.markdown('<div class="group-title">📋 1. Modalidad y Grado</div>', unsafe_allow_html=True)
+        c1, c2, c3 = st.columns(3)
+        mod = c1.selectbox("Modalidad", ["EBR Regular", "EBA", "EBE"], key="mod_s")
+        niv = c2.selectbox("Nivel/Ciclo", ["Primaria", "Secundaria"], key="niv_s")
+        gra = c3.selectbox("Grado", ["1ro", "2do", "3ro", "4to", "5to", "6to"], key="gra_s")
+
+    st.button("🪄 ¡IA, determina las Competencias por mí!", key="magic_btn")
+
+    with st.container():
+        st.markdown('<div class="group-title">🎯 2. Propósito de Aprendizaje</div>', unsafe_allow_html=True)
+        ca, cb = st.columns(2)
+        area_s = ca.selectbox("Área Curricular", ["Matemática", "Comunicación", "Personal Social", "Ciencia y Tecnología"], key="area_s")
+        comp_s = cb.text_input("Competencia específica (Opcional)", key="comp_s")
+        enf_s = st.selectbox("Enfoque Transversal", ["Orientación al bien común", "Inclusivo", "Intercultural", "Ambiental"], key="enf_s")
+
+    with st.container():
+        st.markdown('<div class="group-title">⚒️ 3. Contexto, Recursos y Metodología</div>', unsafe_allow_html=True)
+        col_x, col_y = st.columns(2)
+        espacio = col_x.selectbox("Espacio", ["Aula", "Patio", "AIP / Laboratorio"], key="esp_s")
+        metodo = col_y.selectbox("Metodología", ["Aprendizaje basado en proyectos", "Flipped Classroom", "Trabajo en equipo"], key="met_s")
+        
+        nee_on = st.toggle("🧠 Adaptación de Inclusión (NEE)", key="nee_s")
+        guia_on = st.toggle("⚠️ Requiero guía paso a paso (No soy del área)", key="guia_s")
+
+    st.markdown('<div class="group-title">📌 4. Tema o Título de la Sesión</div>', unsafe_allow_html=True)
+    titulo_s = st.text_input("Ej: Conocemos la historia de nuestra provincia", key="titulo_s")
+    duracion_s = st.text_input("Duración (Minutos)", "90", key="dur_s")
+
+    if st.button("🚀 GENERAR SESIÓN COMPLETA", key="main_gen"):
+        if titulo_s:
+            datos = {
+                "area": area_s, "grado": gra, "duracion": duracion_s,
+                "contexto": f"Espacio: {espacio}, Método: {metodo}",
+                "nee": "SÍ" if nee_on else "NO", "guia": "SÍ" if guia_on else "NO"
+            }
+            with st.spinner("Diseñando experiencia de aprendizaje..."):
+                resultado = consultar_ia("Sesión de Aprendizaje", titulo_s, datos)
+                st.markdown(resultado)
+                
+                # Botón de descarga simplificado
+                st.download_button("📥 Descargar Sesión en Word", resultado, f"{titulo_s}.docx")
+        else:
+            st.error("Por favor, ingresa el título de la sesión.")
+
+# --- FOOTER ---
+st.markdown("<br><center><small>EduPlan IA - Innovación para el Docente del Cusco</small></center>", unsafe_allow_html=True)
