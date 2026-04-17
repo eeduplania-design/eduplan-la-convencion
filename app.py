@@ -4,93 +4,138 @@ from docx import Document
 import io
 import re
 
-# --- IDENTIDAD PROVINCIAL ---
+# --- CONFIGURACIÓN DE IDENTIDAD ---
 NOMBRE_APP = "EDUPLAN IA - LA CONVENCIÓN"
-LIDER_PROYECTO = "Prof. Percy Tapia"
-REGION = "Cusco - Perú"
+LIDER = "Prof. Percy Tapia"
+DISTRICTS = ["Santa Ana", "Echarati", "Huayopata", "Maranura", "Santa Teresa", "Vilcabamba", "Quellouno", "Pichari", "Kimbiri", "Inkawasi", "Villa Virgen", "Villa Kintiarina", "Ocobamba"]
 
-# Conexión con la API
-API_KEY = st.secrets.get("ZHIPU_KEY", "TU_API_KEY_AQUI")
-client = ZhipuAI(api_key=API_KEY)
+# Conexión Segura con la API
+client = ZhipuAI(api_key=st.secrets.get("ZHIPU_KEY", ""))
 
-# --- DISEÑO VISUAL ---
+# --- DISEÑO DE LA INTERFAZ (UI) ---
 st.set_page_config(page_title=NOMBRE_APP, layout="wide", page_icon="🌳")
 
 st.markdown(f"""
     <style>
-    .main {{ background-color: #f4f7f6; }}
-    .stButton>button {{ background: linear-gradient(90deg, #2e7d32, #1b5e20); color: white; border-radius: 10px; height: 3.5em; width: 100%; font-weight: bold; border: none; }}
-    .header-box {{ text-align: center; padding: 25px; background-color: white; border-radius: 15px; border-bottom: 5px solid #2e7d32; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 20px; }}
-    .footer {{ text-align: center; padding: 20px; color: #666; font-size: 0.9em; margin-top: 50px; border-top: 1px solid #ddd; }}
+    .stApp {{ background-color: #f8fafc; }}
+    .main-header {{ text-align: center; padding: 2rem; background: linear-gradient(90deg, #1e3a8a, #2e7d32); color: white; border-radius: 15px; margin-bottom: 2rem; }}
+    .stButton>button {{ width: 100%; background-color: #2e7d32; color: white; font-weight: bold; border-radius: 10px; height: 3.5em; border: none; }}
+    .footer {{ text-align: center; padding: 2rem; font-size: 0.8rem; color: #64748b; border-top: 1px solid #e2e8f0; margin-top: 3rem; }}
     </style>
-    <div class="header-box">
-        <h1 style="color: #2e7d32; margin-bottom: 0;">🌳 {NOMBRE_APP}</h1>
-        <p style="font-size: 1.1em; color: #555;">Transformando la Planificación Curricular en la Provincia de La Convención</p>
+    <div class="main-header">
+        <h1>🌳 {NOMBRE_APP}</h1>
+        <p>Especialista en Planificación Curricular - UGEL La Convención</p>
     </div>
     """, unsafe_allow_html=True)
 
-# --- BARRA LATERAL (DATOS DEL DOCENTE) ---
+# --- PANEL LATERAL: CONFIGURACIÓN PEDAGÓGICA ---
 with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/3426/3426653.png", width=80)
-    st.header("📍 Datos del Docente")
-    ie_usuario = st.text_input("Nombre de su I.E.", placeholder="Ej. Virgen del Carmen")
-    distrito = st.selectbox("Distrito", ["Santa Ana", "Echarati", "Huayopata", "Maranura", "Santa Teresa", "Vilcabamba", "Quellouno", "Pichari", "Kimbiri", "Inkawasi", "Villa Virgen", "Villa Kintiarina", "Ocobamba"])
-    st.markdown("---")
-    nivel = st.selectbox("Nivel", ["Inicial", "Primaria", "Secundaria"])
-    grado = st.selectbox("Grado", ["1ro", "2do", "3ro", "4to", "5to", "6to"])
-    area = st.selectbox("Área", ["Matemática", "Comunicación", "Personal Social", "Ciencia y Tecnología", "Religión", "Arte", "EF", "Inglés"])
-    instrumento = st.selectbox("Instrumento", ["Lista de Cotejo", "Rúbrica Analítica", "Escala de Valoración"])
+    st.header("📍 Configuración")
+    ie_nombre = st.text_input("Institución Educativa", placeholder="Ej: Virgen del Carmen")
+    distrito_sel = st.selectbox("Distrito", DISTRICTS)
+    st.divider()
+    nivel = st.selectbox("Nivel Educativo", ["Inicial", "Primaria", "Secundaria"])
+    grado = st.selectbox("Grado/Año", ["1ro", "2do", "3ro", "4to", "5to", "6to"])
+    area = st.selectbox("Área Curricular", ["Matemática", "Comunicación", "Personal Social", "Ciencia y Tecnología", "Religión", "Arte y Cultura", "Educación Física", "Inglés", "Tutoría"])
+    st.info(f"Liderazgo Digital: {LIDER}")
 
-# --- LÓGICA DE IA ---
-def consultar_ia(tipo, tema, contexto=""):
-    prompt = f"""
-    Eres un especialista curricular de la UGEL La Convención, Cusco. Genera un/a {tipo} para el nivel {nivel}, grado {grado}, área de {area}.
-    CONTEXTO PROVINCIAL: Si es posible, usa ejemplos relacionados a la cultura, geografía (café, cacao, ceja de selva) o historia de La Convención.
-    ESTRUCTURA:
-    1. SITUACIÓN SIGNIFICATIVA: Contexto local, Reto (pregunta) y Producto.
-    2. PROPÓSITOS: Competencia, Capacidad y Desempeño CNEB.
-    3. SECUENCIA: Inicio, Desarrollo y Cierre (procesos didácticos).
-    4. EVALUACIÓN: Tabla detallada de {instrumento}.
-    Tema: {tema}. Contexto adicional: {contexto}.
+# --- MOTOR DE INTELIGENCIA ARTIFICIAL (PROMPT MAESTRO) ---
+def ia_engine(tipo_doc, tema, contexto_extra=""):
+    prompt_maestro = f"""
+    Actúa como un Especialista de Acompañamiento Pedagógico de la UGEL La Convención, experto en el CNEB y normativas del MINEDU (RVM N° 094-2020).
+    
+    TAREA: Generar un/a {tipo_doc} detallado para el nivel {nivel}, grado {grado}, área de {area}.
+    
+    DIVERSIFICACIÓN CURRICULAR: 
+    Contextualiza la planificación a la Provincia de La Convención, Cusco. Usa ejemplos reales de la zona: producción de café, cacao, biodiversidad, turismo en Santa Teresa, historia de Vilcabamba o la realidad del distrito de {distrito_sel}.
+    
+    ESTRUCTURA OBLIGATORIA:
+    1. DATOS INFORMATIVOS: I.E. {ie_nombre}, Distrito {distrito_sel}.
+    2. SITUACIÓN SIGNIFICATIVA: Contexto local, Reto (pregunta desafiante) y Producto esperado.
+    3. PROPÓSITOS DE APRENDIZAJE: Competencias, Capacidades y Desempeños precisados del CNEB.
+    4. ENFOQUES TRANSVERSALES.
+    5. SECUENCIA DIDÁCTICA: Inicio, Desarrollo y Cierre, respetando los procesos pedagógicos y procesos didácticos específicos de {area}.
+    6. EVALUACIÓN FORMATIVA: Técnicas, criterios e instrumentos coherentes.
+    
+    TEMA ESPECÍFICO: {tema}. 
+    CONTEXTO ADICIONAL DEL DOCENTE: {contexto_extra}.
+    
+    Responde en formato claro, profesional y usa tablas donde sea necesario.
     """
     try:
-        response = client.chat.completions.create(model="glm-4-flash", messages=[{"role": "user", "content": prompt}])
+        response = client.chat.completions.create(model="glm-4-flash", messages=[{"role": "user", "content": prompt_maestro}])
         return response.choices[0].message.content
     except Exception as e:
-        return f"Error: {e}"
+        return f"⚠️ Error: Asegúrese de haber configurado correctamente su API KEY en Secrets. Detalle: {e}"
 
-def crear_docx(contenido, titulo):
+# --- FUNCIÓN DE DESCARGA E IMPRESIÓN ---
+def crear_word(contenido, titulo_doc):
     doc = Document()
-    doc.add_heading(titulo, 0)
-    doc.add_paragraph(f"I.E.: {ie_usuario} | Distrito: {distrito}").bold = True
-    doc.add_paragraph(f"Responsable del Proyecto: {LIDER_PROYECTO}")
-    doc.add_paragraph("-" * 30)
+    doc.add_heading(titulo_doc, 0)
+    doc.add_paragraph(f"I.E.: {ie_nombre} | Distrito: {distrito_sel}").bold = True
+    doc.add_paragraph(f"Proyecto: {NOMBRE_APP} | Responsable: {LIDER}")
+    doc.add_paragraph("-" * 45)
+    
+    # Limpieza de Markdown para Word
     limpio = re.sub(r'[*#]', '', contenido)
     doc.add_paragraph(limpio)
-    stream = io.BytesIO()
-    doc.save(stream)
-    stream.seek(0)
-    return stream
+    
+    buffer = io.BytesIO()
+    doc.save(buffer)
+    buffer.seek(0)
+    return buffer
 
-# --- PESTAÑAS ---
-t1, t2, t3 = st.tabs(["📄 Sesiones", "📂 Unidades", "📊 Evaluación"])
+# --- CUERPO DE LA PÁGINA: PESTAÑAS ---
+tab1, tab2, tab3, tab4 = st.tabs(["📅 Prog. Anual", "📂 Unidades", "📄 Sesiones", "📊 Evaluación & NEE"])
 
-with t1:
-    tema = st.text_input("Título de la Sesión de Aprendizaje")
-    extra = st.text_area("Contexto específico del aula (Opcional)")
-    if st.button("🚀 Generar Sesión Convenciana"):
-        with st.spinner("EduPlan IA está redactando su sesión..."):
-            res = consultar_ia("Sesión de Aprendizaje", tema, extra)
-            st.markdown(res)
-            file = crear_docx(res, f"SESIÓN - {tema}")
-            st.download_button("📥 Descargar Word", file, file_name=f"Sesion_{tema}.docx")
+with tab1:
+    st.subheader("Planificación a Largo Plazo: Programación Anual")
+    t_anual = st.text_input("Título de la Programación Anual", placeholder="Ej: Fortalecemos nuestra identidad convenciana")
+    if st.button("✨ Generar Plan Anual"):
+        with st.spinner("IA trabajando para la UGEL La Convención..."):
+            resultado = ia_engine("Programación Curricular Anual", t_anual)
+            st.markdown(resultado)
+            st.download_button("🖨️ Descargar para Imprimir", crear_word(resultado, "PROG_ANUAL"), f"Anual_{grado}.docx")
 
-# (La lógica se repite para Unidades y Evaluación de forma similar)
+with tab2:
+    st.subheader("Planificación a Corto Plazo: Unidades de Aprendizaje")
+    t_unidad = st.text_input("Título de la Unidad / Proyecto")
+    if st.button("✨ Generar Unidad Didáctica"):
+        with st.spinner("Estructurando Unidad CNEB..."):
+            resultado = ia_engine("Unidad de Aprendizaje / Proyecto", t_unidad)
+            st.markdown(resultado)
+            st.download_button("🖨️ Descargar para Imprimir", crear_word(resultado, "UNIDAD"), f"Unidad_{grado}.docx")
 
-# --- FOOTER ---
+with tab3:
+    st.subheader("Desarrollo Diario: Sesión de Aprendizaje")
+    t_sesion = st.text_input("Título de la Sesión")
+    ctx_sesion = st.text_area("Describa brevemente la necesidad o problemática observada en el aula")
+    if st.button("✨ Generar Sesión Completa"):
+        with st.spinner("Redactando procesos pedagógicos..."):
+            resultado = ia_engine("Sesión de Aprendizaje Detallada", t_sesion, ctx_sesion)
+            st.markdown(resultado)
+            st.download_button("🖨️ Descargar para Imprimir", crear_word(resultado, "SESION"), f"Sesion_{grado}.docx")
+
+with tab4:
+    st.subheader("Instrumentos de Evaluación e Inclusión")
+    col1, col2 = st.columns(2)
+    with col1:
+        instrumento = st.selectbox("Seleccione el Instrumento", ["Lista de Cotejo", "Rúbrica Analítica", "Escala de Valoración"])
+    with col2:
+        es_nee = st.checkbox("¿Adaptar para Estudiantes con NEE?")
+    
+    desempeno = st.text_input("Escriba la competencia o desempeño a evaluar")
+    if st.button("✨ Generar Evaluación"):
+        tipo = f"{instrumento} " + ("con Adaptación para NEE" if es_nee else "")
+        with st.spinner("Creando tabla de evaluación formativa..."):
+            resultado = ia_engine(tipo, desempeno)
+            st.markdown(resultado)
+            st.download_button("🖨️ Descargar para Imprimir", crear_word(resultado, "EVALUACION"), "Evaluacion.docx")
+
+# --- PIE DE PÁGINA ---
 st.markdown(f"""
     <div class="footer">
-        <p><b>{NOMBRE_APP}</b> | Una iniciativa para la Provincia de La Convención</p>
-        <p>Liderazgo Pedagógico: <b>{LIDER_PROYECTO}</b> | 2026</p>
+        <p><b>{NOMBRE_APP}</b> - Innovación Pedagógica para la Provincia de La Convención</p>
+        <p>Desarrollado por: <b>{LIDER}</b> | 2026</p>
     </div>
     """, unsafe_allow_html=True)
