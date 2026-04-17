@@ -1,144 +1,159 @@
 import streamlit as st
 from zhipuai import ZhipuAI
 from docx import Document
+from docx.shared import Pt
 import io
 import re
 
-# --- CONFIGURACIÓN DE IDENTIDAD ---
-NOMBRE_APP = "EDUPLAN IA - LA CONVENCIÓN"
+# --- CONFIGURACIÓN E IDENTIDAD ---
+NOMBRE_APP = "EDUPLAN IA"
+SUBTITULO = "Portal de Planificación Curricular - La Convención"
 LIDER = "Prof. Percy Tapia"
-DISTRICTS = ["Santa Ana", "Echarati", "Huayopata", "Maranura", "Santa Teresa", "Vilcabamba", "Quellouno", "Pichari", "Kimbiri", "Inkawasi", "Villa Virgen", "Villa Kintiarina", "Ocobamba"]
+API_KEY = st.secrets.get("ZHIPU_KEY", "")
+client = ZhipuAI(api_key=API_KEY)
 
-# Conexión Segura con la API
-client = ZhipuAI(api_key=st.secrets.get("ZHIPU_KEY", ""))
-
-# --- DISEÑO UX/UI (ESTILOS PERSONALIZADOS) ---
-st.set_page_config(page_title=NOMBRE_APP, layout="wide", page_icon="🌳")
+# --- DISEÑO ESTILO PORTAL (CSS) ---
+st.set_page_config(page_title=f"{NOMBRE_APP} | La Convención", layout="wide", page_icon="📝")
 
 st.markdown(f"""
     <style>
-    /* Importación de Tipografía */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+    /* Estilo General tipo Planifica.net */
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
     
-    html, body, [class*="css"] {{ font-family: 'Inter', sans-serif; }}
+    html, body, [class*="css"] {{ font-family: 'Poppins', sans-serif; background-color: #f0f2f5; }}
     
-    .stApp {{ background-color: #f8fafc; }}
-    
-    /* Hero Section */
-    .hero-container {{
-        text-align: center;
-        padding: 3rem 1rem;
-        background: linear-gradient(135deg, #1e3a8a 0%, #2e7d32 100%);
-        color: white;
-        border-radius: 20px;
-        margin-bottom: 2rem;
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    /* Barra Superior Estilo Portal */
+    .navbar {{
+        background-color: #ffffff;
+        padding: 15px 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 2px solid #2e7d32;
+        margin-bottom: 25px;
+        border-radius: 0 0 15px 15px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
     }}
     
-    /* Estilo de Botones */
-    .stButton>button {{
-        width: 100%;
-        background-color: #2e7d32;
-        color: white;
-        font-weight: 700;
-        border-radius: 12px;
-        padding: 0.75rem;
-        border: none;
-        transition: all 0.3s ease;
-    }}
-    .stButton>button:hover {{
-        background-color: #1b5e20;
-        transform: translateY(-2px);
-    }}
-    
-    /* Tarjetas de Contenido */
-    .content-card {{
-        background-color: white;
-        padding: 1.5rem;
+    /* Contenedores de Instrumentos */
+    .instrumento-card {{
+        background-color: #ffffff;
+        padding: 25px;
         border-radius: 15px;
-        border-left: 5px solid #1e3a8a;
-        margin-bottom: 1rem;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border-top: 5px solid #2e7d32;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        margin-bottom: 20px;
     }}
+    
+    /* Botones Profesionales */
+    .stButton>button {{
+        background: #2e7d32;
+        color: white;
+        border-radius: 8px;
+        padding: 10px 25px;
+        font-weight: 600;
+        border: none;
+        width: 100%;
+        transition: 0.3s;
+    }}
+    .stButton>button:hover {{ background: #1b5e20; transform: scale(1.02); }}
+    
+    /* Títulos */
+    h1, h2, h3 {{ color: #1e3a8a; }}
     </style>
     
-    <div class="hero-container">
-        <h1 style="font-size: 3rem; margin-bottom: 0.5rem;">🌳 {NOMBRE_APP}</h1>
-        <p style="font-size: 1.25rem; opacity: 0.9;">Planificación Curricular Inteligente para el Docente Convenciano</p>
-        <p style="font-size: 1rem; margin-top: 1rem; background: rgba(255,255,255,0.2); display: inline-block; padding: 5px 15px; border-radius: 20px;">Alineado al CNEB 2026</p>
+    <div class="navbar">
+        <div>
+            <span style="font-size: 24px; font-weight: 700; color: #2e7d32;">📝 {NOMBRE_APP}</span>
+            <span style="margin-left: 10px; color: #666; font-size: 14px;">| Provincia de La Convención</span>
+        </div>
+        <div style="font-size: 12px; color: #999;">Proyecto de Innovación Pedagógica</div>
     </div>
     """, unsafe_allow_html=True)
 
-# --- PANEL LATERAL (SIDEBAR UX) ---
+# --- PANEL DE FILTROS (SIDEBAR) ---
 with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/3426/3426653.png", width=80)
-    st.title("Panel de Control")
-    st.subheader("Datos de la I.E.")
-    ie_nombre = st.text_input("Institución Educativa", placeholder="Nombre de su colegio")
-    distrito_sel = st.selectbox("Distrito Local", DISTRICTS)
-    
-    st.divider()
-    st.subheader("Configuración Pedagógica")
-    nivel = st.selectbox("Nivel", ["Inicial", "Primaria", "Secundaria"])
+    st.markdown("### 🛠️ Configuración Global")
+    ie_nombre = st.text_input("Nombre de la I.E.", "IE Virgen del Carmen")
+    distrito = st.selectbox("Distrito", ["Santa Ana", "Santa Teresa", "Echarati", "Maranura", "Huayopata", "Otros"])
+    nivel = st.radio("Nivel Educativo", ["Primaria", "Secundaria"], horizontal=True)
     grado = st.selectbox("Grado", ["1ro", "2do", "3ro", "4to", "5to", "6to"])
-    area = st.selectbox("Área Curricular", ["Matemática", "Comunicación", "Personal Social", "Ciencia y Tecnología", "Religión", "Arte y Cultura", "Educación Física", "Inglés", "Tutoría"])
-    
-    st.caption(f"Liderazgo: {LIDER}")
+    area = st.selectbox("Área Curricular", ["Comunicación", "Matemática", "Personal Social", "Ciencia y Tecnología", "Arte", "EF", "Inglés"])
+    st.divider()
+    st.caption(f"Administrado por: {LIDER}")
 
-# --- MOTOR DE INTELIGENCIA (PROMPT UX OPTIMIZADO) ---
-def ia_engine(tipo_doc, tema, contexto_extra=""):
-    # Tu prompt maestro mejorado anteriormente...
-    prompt_maestro = f"Actúa como un Especialista de la UGEL La Convención... Genera un {tipo_doc} para {area} en {grado} grado sobre {tema}. Contexto: {contexto_extra}."
+# --- MOTOR DE GENERACIÓN ---
+def generar_documento(tipo, tema, contexto=""):
+    prompt = f"""Actúa como experto en CNEB del MINEDU Perú. Genera un/a {tipo} detallado para {nivel}, {grado} grado, área {area}. 
+    I.E. {ie_nombre}, Distrito {distrito}. Tema: {tema}. Contexto local: {contexto}.
+    Estructura profesional con Situación Significativa, Competencias, Desempeños y Secuencia Didáctica."""
     try:
-        response = client.chat.completions.create(model="glm-4-flash", messages=[{"role": "user", "content": prompt_maestro}])
+        response = client.chat.completions.create(model="glm-4-flash", messages=[{"role": "user", "content": prompt}])
         return response.choices[0].message.content
-    except:
-        return "⚠️ Error: Verifique su API Key en Secrets."
+    except: return "⚠️ Error: Revisa tu API KEY."
 
-def crear_word(contenido, titulo):
+def descargar_word(contenido, titulo):
     doc = Document()
     doc.add_heading(titulo, 0)
-    doc.add_paragraph(f"I.E.: {ie_nombre} | Distrito: {distrito_sel}").bold = True
-    doc.add_paragraph("-" * 50)
-    limpio = re.sub(r'[*#]', '', contenido)
-    doc.add_paragraph(limpio)
+    doc.add_paragraph(f"I.E. {ie_nombre} - {distrito}").bold = True
+    doc.add_paragraph(re.sub(r'[*#]', '', contenido))
     buf = io.BytesIO()
     doc.save(buf)
     buf.seek(0)
     return buf
 
-# --- DISPOSICIÓN DE ELEMENTOS (WIREFRAME TEXTUAL) ---
-tab1, tab2, tab3, tab4 = st.tabs(["📅 Programación Anual", "📂 Unidades", "📄 Sesiones", "📊 Evaluación & NEE"])
+# --- CUERPO PRINCIPAL (ESTRUCTURA DE PLANIFICA.NET) ---
+st.markdown(f"## 🏛️ Bienvenido al Portal de Planificación")
+st.write("Seleccione el instrumento que desea generar para su jornada pedagógica.")
 
-# Estructura repetible para cada pestaña
-def render_tab(tipo, placeholder):
-    st.markdown(f"<div class='content-card'><h3>Generar {tipo}</h3></div>", unsafe_allow_html=True)
-    tema = st.text_input(f"Título o Tema Central de la {tipo}", placeholder=placeholder)
-    extra = ""
-    if tipo == "Sesión":
-        extra = st.text_area("Describa la situación significativa o reto del aula")
-    
-    if st.button(f"🚀 Generar {tipo} Profesional"):
-        if not ie_nombre:
-            st.warning("Por favor, ingrese el nombre de su I.E. en el panel lateral.")
-        else:
-            with st.spinner("La IA está analizando los lineamientos del CNEB..."):
-                res = ia_engine(tipo, tema, extra)
-                st.markdown(res)
-                file = crear_word(res, tipo.upper())
-                st.download_button(f"📥 Descargar {tipo} en Word", file, file_name=f"{tipo}_{tema}.docx")
+# Usamos pestañas pero con estilo de tarjeta
+tab1, tab2, tab3, tab4 = st.tabs(["📅 PROGRAMACIÓN ANUAL", "📂 UNIDAD DIDÁCTICA", "📄 SESIÓN DE CLASE", "📊 EVALUACIÓN"])
 
-with tab1: render_tab("Programación Anual", "Ej: Fortalecemos nuestra identidad")
-with tab2: render_tab("Unidad Didáctica", "Ej: Conocemos nuestras riquezas naturales")
-with tab3: render_tab("Sesión", "Ej: Leemos textos sobre el café")
+with tab1:
+    st.markdown('<div class="instrumento-card">', unsafe_allow_html=True)
+    st.subheader("Configuración de Programación Anual")
+    t_anual = st.text_input("Nombre del Año Escolar / Título Anual")
+    if st.button("Generar Programación Anual ✨"):
+        res = generar_documento("Programación Anual", t_anual)
+        st.markdown(res)
+        st.download_button("📥 Descargar Word", descargar_word(res, "PROG_ANUAL"), "Anual.docx")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+with tab2:
+    st.markdown('<div class="instrumento-card">', unsafe_allow_html=True)
+    st.subheader("Diseño de Unidad de Aprendizaje")
+    t_unidad = st.text_input("Título de la Unidad")
+    if st.button("Generar Unidad Didáctica ✨"):
+        res = generar_documento("Unidad de Aprendizaje", t_unidad)
+        st.markdown(res)
+        st.download_button("📥 Descargar Word", descargar_word(res, "UNIDAD"), "Unidad.docx")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+with tab3:
+    st.markdown('<div class="instrumento-card">', unsafe_allow_html=True)
+    st.subheader("Desarrollo de Sesión de Aprendizaje")
+    t_sesion = st.text_input("Título de la Sesión")
+    ctx = st.text_area("Contexto o problemática específica")
+    if st.button("Generar Sesión de Clase ✨"):
+        res = generar_documento("Sesión de Aprendizaje", t_sesion, ctx)
+        st.markdown(res)
+        st.download_button("📥 Descargar Word", descargar_word(res, "SESION"), "Sesion.docx")
+    st.markdown('</div>', unsafe_allow_html=True)
+
 with tab4:
+    st.markdown('<div class="instrumento-card">', unsafe_allow_html=True)
     st.subheader("Instrumentos de Evaluación")
-    inst = st.selectbox("Tipo de instrumento", ["Lista de Cotejo", "Rúbrica Analítica"])
-    t_eval = st.text_input("Competencia a evaluar")
-    if st.button("📊 Crear Instrumento"):
-        with st.spinner("Generando criterios..."):
-            res = ia_engine(inst, t_eval)
-            st.markdown(res)
+    t_inst = st.selectbox("Tipo", ["Lista de Cotejo", "Rúbrica Analítica"])
+    tema_eval = st.text_input("Competencia a evaluar")
+    if st.button("Generar Instrumento ✨"):
+        res = generar_documento(t_inst, tema_eval)
+        st.markdown(res)
+        st.download_button("📥 Descargar Word", descargar_word(res, "EVALUACION"), "Evaluacion.docx")
+    st.markdown('</div>', unsafe_allow_html=True)
 
-# --- FOOTER ---
-st.markdown(f"<div class='footer'><b>{NOMBRE_APP}</b> | Proyecto de Innovación Regional | {LIDER}</div>", unsafe_allow_html=True)
+st.markdown(f"""
+    <div style="text-align:center; padding: 40px; color: #888; font-size: 13px;">
+        Desarrollado para la Provincia de La Convención por el <b>{LIDER}</b><br>
+        © 2026 - Todos los derechos reservados.
+    </div>
+    """, unsafe_allow_html=True)
