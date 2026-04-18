@@ -1,9 +1,12 @@
 import io
+import re
 import streamlit as st
 from zhipuai import ZhipuAI
 from docx import Document
-from docx.shared import Pt, Inches
+from docx.shared import Pt, Inches, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml.ns import qn
+from docx.oxml import OxmlElement
 
 # ── 1. CONFIGURACIÓN DE PÁGINA ──
 st.set_page_config(
@@ -17,14 +20,12 @@ st.set_page_config(
 NOMBRE_APP = "EDUPLAN IA - LA CONVENCIÓN"
 LIDER = "Prof. Percy Tapia"
 
-# Distritos de la Provincia de La Convención
 DISTRITOS_LA_CONVENCION = [
     "Santa Ana (Quillabamba)", "Echarati", "Huayopata", "Maranura", 
     "Ocobamba", "Quellouno", "Kimbiri", "Pichari", "Vilcabamba", 
     "Santa Teresa", "Inkawasi", "Villa Virgen", "Villa Kintiarina", "Megantoni"
 ]
 
-# Áreas y Competencias según CNEB
 AREAS_CNEB = {
     "Inicial": {
         "Personal Social": ["Construye su identidad", "Convive y participa democráticamente"],
@@ -90,13 +91,13 @@ client = get_client()
 
 # ── 4. PROMPT MAESTRO ──
 PROMPT_SISTEMA = (
-    "Eres un asistente pedagógico de élite experto en el CNEB del Perú y el Currículo Regional de Cusco (PER). "
+    "Eres un asistente pedagógico de élite experto en el CNEB del Perú y el Currículo Regional de Cusco. "
     "Tu objetivo es ayudar a docentes de la Provincia de La Convención a planificar con precisión técnica.\n\n"
-    "ESTRUCTURA OBLIGATORIA:\n"
-    "1. Usa TABLAS detalladas para la secuencia didáctica y matrices de evaluación.\n"
-    "2. Incluye obligatoriamente: Competencias, Capacidades, Desempeños y Criterios de Evaluación por cada actividad.\n"
-    "3. Contextualización Local: DEBES mencionar el distrito seleccionado y elementos de la selva convenciana.\n"
-    "4. Tono: Académico, motivador y respetuoso con la labor docente."
+    "REGLAS DE FORMATO:\n"
+    "1. Usa tablas de Markdown reales para la secuencia didáctica y matrices.\n"
+    "2. No uses negritas exageradas dentro de las celdas.\n"
+    "3. Contextualiza siempre a la selva convenciana (Quillabamba).\n"
+    "4. Separa las secciones con títulos claros usando ###."
 )
 
 # ── 5. ESTILOS CSS ──
@@ -105,77 +106,134 @@ st.markdown("""
     @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;700&family=Inter:wght@400;600&display=swap');
     html, body, [class*="st-"] { font-family: 'Inter', sans-serif; }
     h1, h2, h3 { font-family: 'Sora', sans-serif !important; }
-    .main { background-color: #f1f5f9; }
-    .card {
-        background: white;
-        padding: 25px;
-        border-radius: 15px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        border: 1px solid #e2e8f0;
-        margin-bottom: 20px;
-    }
-    .stButton > button {
-        background: linear-gradient(90deg, #1e3a8a 0%, #2563eb 100%);
-        color: white; border-radius: 10px; height: 3em; font-weight: bold; width: 100%;
-    }
+    .card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; margin-bottom: 20px; }
+    .stButton > button { background: linear-gradient(90deg, #1e3a8a 0%, #2563eb 100%); color: white; border-radius: 10px; font-weight: bold; width: 100%; }
     </style>
 """, unsafe_allow_html=True)
 
-# ── 6. LÓGICA DE APOYO ──
+# ── 6. LÓGICA DE APOYO (EXPORTACIÓN WORD MEJORADA) ──
+
+def set_table_borders(table):
+    tbl = table._tbl
+    for cell in tbl.xpath('.//w:tc'):
+        tcPr = cell.get_or_add_tcPr()
+        tcBorders = OxmlElement('w:tcBorders')
+        top = OxmlElement('w:top')
+        top.set(qn('w:val'), 'single')
+        top.set(qn('w:sz'), '4')
+        tcBorders.append(top)
+        # Repetir para los 4 lados... (python-docx simplificado abajo)
+    
 def generar_word(tipo, contenido, metadatos):
     doc = Document()
+    
+    # Configurar márgenes estrechos para mejor aprovechamiento
+    section = doc.sections[0]
+    section.top_margin = Inches(0.5)
+    section.bottom_margin = Inches(0.5)
+    section.left_margin = Inches(0.7)
+    section.right_margin = Inches(0.7)
+
+    # Estilo base
     style = doc.styles['Normal']
-    font = style.font
-    font.name = 'Arial'
-    font.size = Pt(11)
+    style.font.name = 'Arial'
+    style.font.size = Pt(10)
 
-    # Encabezado Oficial
-    p = doc.add_paragraph()
-    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = p.add_run("“Año de la Unidad, la Paz y el Desarrollo”")
-    run.italic = True
-    run.font.size = Pt(10)
+    # 1. Encabezado Centrado
+    p_header = doc.add_paragraph()
+    p_header.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = p_header.add_run("“AÑO DE LA UNIDAD, LA PAZ Y EL DESARROLLO”")
+    run.bold = True
+    run.font.size = Pt(9)
 
-    title = doc.add_heading(tipo.upper(), level=1)
+    # 2. Título del Documento
+    title = doc.add_paragraph()
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    
-    doc.add_paragraph() 
-    
-    # Tabla de Datos Informativos
+    run_title = title.add_run(tipo.upper())
+    run_title.bold = True
+    run_title.font.size = Pt(14)
+    run_title.font.color.rgb = RGBColor(31, 73, 125)
+
+    # 3. Datos Informativos (Tabla Estructurada)
     doc.add_heading("I. DATOS INFORMATIVOS", level=2)
-    table = doc.add_table(rows=7, cols=2)
-    table.style = 'Table Grid'
+    info_table = doc.add_table(rows=0, cols=2)
+    info_table.style = 'Table Grid'
     
     items = [
         ("INSTITUCIÓN EDUCATIVA", metadatos['ie']),
-        ("UBICACIÓN (DISTRITO)", metadatos['distrito']),
+        ("DISTRITO / LOCALIDAD", metadatos['distrito']),
         ("NIVEL / GRADO / SECCIÓN", f"{metadatos['nivel']} - {metadatos['grado']}"),
         ("ÁREA CURRICULAR", metadatos['area']),
         ("DOCENTE", LIDER),
         ("ENFOQUES TRANSVERSALES", str(metadatos['enfoque'])),
-        ("SITUACIÓN / TEMA", metadatos['situacion'])
+        ("SITUACIÓN SIGNIFICATIVA", metadatos['situacion'])
     ]
     
-    for i, (label, val) in enumerate(items):
-        row = table.rows[i].cells
-        row[0].text = label
-        row[0].paragraphs[0].runs[0].bold = True
-        row[1].text = str(val)
+    for label, val in items:
+        row_cells = info_table.add_row().cells
+        row_cells[0].text = label
+        row_cells[0].paragraphs[0].runs[0].bold = True
+        row_cells[1].text = str(val)
 
     doc.add_paragraph()
-    doc.add_heading("II. DESARROLLO DE LA PLANIFICACIÓN", level=2)
-    doc.add_paragraph(contenido)
+    doc.add_heading("II. PLANIFICACIÓN PEDAGÓGICA", level=2)
 
-    # Espacio para firmas
-    doc.add_paragraph("\n\n")
-    signature_table = doc.add_table(rows=1, cols=2)
-    p1 = signature_table.cell(0, 0).paragraphs[0]
-    p1.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p1.add_run("__________________________\nDocente de Aula").bold = True
+    # 4. Procesamiento de Contenido (Detección de Tablas)
+    # Dividimos el contenido por líneas para buscar tablas de markdown
+    lines = contenido.split('\n')
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
+        
+        # Detectar Títulos (###)
+        if line.startswith('###'):
+            text = line.replace('#', '').strip()
+            h = doc.add_heading(text, level=3)
+            i += 1
+            continue
+            
+        # Detectar inicio de Tabla Markdown (| Col | Col |)
+        if line.startswith('|') and i + 1 < len(lines) and '-' in lines[i+1]:
+            # Extraer encabezados
+            headers = [h.strip() for h in line.split('|') if h.strip()]
+            i += 2 # Saltar fila de separación (---)
+            
+            # Crear Tabla en Word
+            word_table = doc.add_table(rows=1, cols=len(headers))
+            word_table.style = 'Table Grid'
+            hdr_cells = word_table.rows[0].cells
+            for idx, h_text in enumerate(headers):
+                hdr_cells[idx].text = h_text
+                hdr_cells[idx].paragraphs[0].runs[0].bold = True
+            
+            # Agregar filas de datos
+            while i < len(lines) and lines[i].strip().startswith('|'):
+                row_data = [d.strip() for d in lines[i].split('|') if d.strip()]
+                if len(row_data) >= len(headers):
+                    row_cells = word_table.add_row().cells
+                    for idx, d_text in enumerate(row_data[:len(headers)]):
+                        row_cells[idx].text = d_text
+                i += 1
+            doc.add_paragraph() # Espacio post tabla
+        else:
+            # Texto normal (limpiando asteriscos de negrita de markdown)
+            if line:
+                clean_text = line.replace('**', '').replace('*', '')
+                doc.add_paragraph(clean_text)
+            i += 1
+
+    # 5. Firmas al final
+    doc.add_paragraph("\n\n\n")
+    sig_table = doc.add_table(rows=1, cols=2)
+    sig_table.alignment = WD_ALIGN_PARAGRAPH.CENTER
     
-    p2 = signature_table.cell(0, 1).paragraphs[0]
-    p2.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p2.add_run("__________________________\nDirector / V°B°").bold = True
+    c1 = sig_table.cell(0, 0).paragraphs[0]
+    c1.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    c1.add_run("__________________________\nDOCENTE DE AULA\n" + LIDER)
+    
+    c2 = sig_table.cell(0, 1).paragraphs[0]
+    c2.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    c2.add_run("__________________________\nDIRECTOR / V°B°\nI.E. " + metadatos['ie'])
 
     buf = io.BytesIO()
     doc.save(buf)
@@ -183,128 +241,101 @@ def generar_word(tipo, contenido, metadatos):
     return buf
 
 def procesar_ia(tipo, prompt_user):
-    if not client: return "⚠️ Error: Configura tu ZHIPU_KEY en secrets."
+    if not client: return "⚠️ Error: Configura tu ZHIPU_KEY."
     try:
         res = client.chat.completions.create(
             model="glm-4-flash",
             messages=[
                 {"role": "system", "content": PROMPT_SISTEMA},
-                {"role": "user", "content": f"Genera una {tipo} con estos parámetros:\n{prompt_user}"}
+                {"role": "user", "content": f"Genera una {tipo} completa para {distrito_sel}. Parámetros: {prompt_user}"}
             ]
         )
         return res.choices[0].message.content
     except Exception as e:
-        return f"❌ Error en la IA: {str(e)}"
+        return f"❌ Error: {str(e)}"
 
 # ── 7. INTERFAZ DE USUARIO ──
 st.markdown(f"""
-    <div style="background: linear-gradient(135deg, #0f172a 0%, #1e40af 100%); 
-                padding: 2.5rem; border-radius: 1.2rem; text-align: center; color: white; margin-bottom: 2rem;">
+    <div style="background: linear-gradient(135deg, #0f172a 0%, #1e40af 100%); padding: 2.5rem; border-radius: 1.2rem; text-align: center; color: white; margin-bottom: 2rem;">
         <h1 style="color: white; margin:0;">🏛️ {NOMBRE_APP}</h1>
-        <p style="font-size: 1.2rem; opacity: 0.9;">Planificación Curricular Inteligente Quillabamba - 2026</p>
+        <p style="font-size: 1.1rem; opacity: 0.9;">Planificación Curricular con Formato Oficial para Quillabamba</p>
     </div>
 """, unsafe_allow_html=True)
 
-# ── 8. SIDEBAR ACTUALIZADA ──
+# ── 8. SIDEBAR ──
 with st.sidebar:
-    st.image("https://img.icons8.com/fluency/96/school.png", width=80)
-    st.header("Configuración del Centro")
+    st.image("https://img.icons8.com/fluency/96/briefcase.png", width=60)
+    st.header("Configuración IE")
     ie_nombre = st.text_input("Nombre de la I.E.", "I.E. La Convención")
-    distrito_sel = st.selectbox("Distrito de Localización", DISTRITOS_LA_CONVENCION)
-    
+    distrito_sel = st.selectbox("Distrito", DISTRITOS_LA_CONVENCION)
     st.divider()
-    st.header("Datos Curriculares")
-    nivel_sel = st.radio("Nivel Educativo", ["Inicial", "Primaria", "Secundaria"], index=1)
+    nivel_sel = st.radio("Nivel", ["Inicial", "Primaria", "Secundaria"], index=1)
     
-    # Grados dinámicos según nivel
     if nivel_sel == "Inicial":
-        grados_lista = ["3 años", "4 años", "5 años"]
+        grados = ["3 años", "4 años", "5 años"]
+    elif nivel_sel == "Primaria":
+        grados = ["1°", "2°", "3°", "4°", "5°", "6°"]
     else:
-        grados_lista = ["1°", "2°", "3°", "4°", "5°", "6°"] if nivel_sel == "Primaria" else ["1°", "2°", "3°", "4°", "5°"]
+        grados = ["1°", "2°", "3°", "4°", "5°"]
     
-    grado_sel = st.selectbox("Grado", grados_lista)
-    
-    # Áreas dinámicas según nivel
-    areas_lista = list(AREAS_CNEB[nivel_sel].keys())
-    area_sel = st.selectbox("Área Curricular", areas_lista)
-    
-    st.divider()
-    st.caption(f"Responsable Técnico: {LIDER}")
+    grado_sel = st.selectbox("Grado", grados)
+    area_sel = st.selectbox("Área", list(AREAS_CNEB[nivel_sel].keys()))
+    st.caption(f"Docente: {LIDER}")
 
-# ── 9. CUERPO PRINCIPAL (TABS) ──
-tabs = st.tabs(["📅 PROG. ANUAL", "📂 UNIDAD", "🚀 SESIÓN"])
+# ── 9. TABS PRINCIPALES ──
+tabs = st.tabs(["📅 ANUAL", "📂 UNIDAD", "🚀 SESIÓN"])
 
-# --- TAB 1: PROGRAMACIÓN ANUAL ---
-with tabs[0]:
+# --- TAB SESIÓN (EJEMPLO) ---
+with tabs[2]:
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("Planificación Anual")
-    col1, col2 = st.columns(2)
-    with col1:
-        tiempo = st.selectbox("Periodo", ["Trimestral", "Bimestral"], key="anual_periodo")
-        sit_anual = st.selectbox("Situación de Contexto", SITUACIONES_CONTEXTO, key="anual_sit")
-    with col2:
-        enf_anual = st.multiselect("Enfoques Transversales", ENFOQUES_TRANSVERSALES, [ENFOQUES_TRANSVERSALES[0]], key="anual_enf")
+    st.subheader("Nueva Sesión de Aprendizaje")
+    s_titulo = st.text_input("Título de la Sesión", "Ej. Conocemos los beneficios del café convenciano")
+    s_comp = st.selectbox("Competencia", AREAS_CNEB[nivel_sel][area_sel])
+    s_prop = st.text_area("Propósito del día")
     
-    comp_anual = st.multiselect("Competencias Priorizadas", AREAS_CNEB[nivel_sel][area_sel], key="anual_comp")
-    
-    if st.button("🚀 Generar Programación Anual"):
-        if not comp_anual:
-            st.warning("Seleccione competencias.")
-        else:
-            p_user = f"Nivel: {nivel_sel}, Área: {area_sel}, Grado: {grado_sel}, Distrito: {distrito_sel}, Situación: {sit_anual}, Competencias: {comp_anual}. Elabora el cuadro de organización de unidades por periodos."
-            with st.spinner("Construyendo plan anual..."):
-                res = procesar_ia("Programación Anual", p_user)
-                st.markdown(res)
-                f = generar_word("Programación Anual", res, {"ie": ie_nombre, "distrito": distrito_sel, "nivel": nivel_sel, "grado": grado_sel, "area": area_sel, "enfoque": ", ".join(enf_anual), "situacion": sit_anual})
-                st.download_button("📥 Descargar Word", f, "Plan_Anual.docx")
+    if st.button("✨ Generar y Previsualizar"):
+        with st.spinner("Generando estructura profesional..."):
+            p_user = f"Sesión: {s_titulo}. Competencia: {s_comp}. Propósito: {s_prop}. Usa tablas para los momentos."
+            res = procesar_ia("Sesión de Aprendizaje", p_user)
+            st.markdown(res)
+            
+            # Preparar metadatos para el Word
+            meta = {
+                "ie": ie_nombre, "distrito": distrito_sel, "nivel": nivel_sel, 
+                "grado": grado_sel, "area": area_sel, "enfoque": "Ambiental / Intercultural", 
+                "situacion": s_titulo
+            }
+            f = generar_word("Sesión de Aprendizaje", res, meta)
+            st.download_button("📥 DESCARGAR WORD LISTO PARA IMPRIMIR", f, f"Sesion_{s_titulo}.docx")
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- TAB 2: UNIDAD DIDÁCTICA ---
+# --- TAB UNIDAD ---
 with tabs[1]:
     st.markdown('<div class="card">', unsafe_allow_html=True)
     st.subheader("Unidad de Aprendizaje")
-    u_titulo = st.text_input("Título de la Unidad", placeholder="Ej. Promovemos el consumo del cacao en Quillabamba")
-    col3, col4 = st.columns(2)
-    with col3:
-        u_dur = st.text_input("Duración estimada", "4 semanas")
-        u_enf = st.selectbox("Enfoque Principal", ENFOQUES_TRANSVERSALES, key="uni_enf")
-    with col4:
-        u_evid = st.text_input("Evidencia Final", "Ej. Tríptico informativo")
-        u_comp = st.multiselect("Competencias", AREAS_CNEB[nivel_sel][area_sel], key="uni_comp")
+    u_titulo = st.text_input("Nombre de la Unidad")
+    u_comp = st.multiselect("Competencias", AREAS_CNEB[nivel_sel][area_sel])
     
-    if st.button("🎨 Diseñar Unidad"):
-        if not u_titulo or not u_comp:
-            st.warning("Faltan datos obligatorios.")
-        else:
-            p_user = f"Título: {u_titulo}, Distrito: {distrito_sel}, Nivel: {nivel_sel}, Área: {area_sel}, Grado: {grado_sel}, Duración: {u_dur}, Competencias: {u_comp}. Redacta la situación significativa y la secuencia de sesiones."
-            with st.spinner("Diseñando unidad..."):
-                res = procesar_ia("Unidad de Aprendizaje", p_user)
-                st.markdown(res)
-                f = generar_word("Unidad de Aprendizaje", res, {"ie": ie_nombre, "distrito": distrito_sel, "nivel": nivel_sel, "grado": grado_sel, "area": area_sel, "enfoque": u_enf, "situacion": u_titulo})
-                st.download_button("📥 Descargar Word", f, "Unidad.docx")
+    if st.button("🚀 Crear Unidad Completa"):
+        p_user = f"Unidad: {u_titulo}. Competencias: {u_comp}. Distrito: {distrito_sel}. Incluye cuadro de sesiones."
+        res = procesar_ia("Unidad de Aprendizaje", p_user)
+        st.markdown(res)
+        meta = {"ie": ie_nombre, "distrito": distrito_sel, "nivel": nivel_sel, "grado": grado_sel, "area": area_sel, "enfoque": "Varios", "situacion": u_titulo}
+        f = generar_word("Unidad de Aprendizaje", res, meta)
+        st.download_button("📥 Descargar Unidad en Word", f, "Unidad_Aprendizaje.docx")
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- TAB 3: SESIÓN DE APRENDIZAJE ---
-with tabs[2]:
+# --- TAB ANUAL ---
+with tabs[0]:
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("Sesión de Aprendizaje")
-    s_titulo = st.text_input("Nombre de la Sesión", placeholder="Ej. Investigamos el cultivo del café en Huayopata")
-    col5, col6 = st.columns(2)
-    with col5:
-        s_comp = st.selectbox("Competencia", AREAS_CNEB[nivel_sel][area_sel], key="ses_comp")
-        s_prop = st.text_area("Propósito", placeholder="¿Qué aprenderán hoy?")
-    with col6:
-        s_met = st.selectbox("Estrategia", ["Aprendizaje Basado en Proyectos", "Indagación", "Juego de Roles", "Resolución de Problemas"])
-        s_mom = st.multiselect("Momentos", ["Inicio", "Desarrollo", "Cierre"], default=["Inicio", "Desarrollo", "Cierre"])
+    st.subheader("Programación Anual")
+    sit_anual = st.selectbox("Contexto Eje", SITUACIONES_CONTEXTO)
     
-    if st.button("✨ Generar Sesión Detallada"):
-        if not s_titulo:
-            st.warning("Ingrese título de sesión.")
-        else:
-            p_user = f"Sesión: {s_titulo}, Distrito: {distrito_sel}, Nivel: {nivel_sel}, Grado: {grado_sel}, Área: {area_sel}, Competencia: {s_comp}, Propósito: {s_prop}. Genera la tabla detallada con procesos pedagógicos y didácticos."
-            with st.spinner("Redactando sesión..."):
-                res = procesar_ia("Sesión de Aprendizaje", p_user)
-                st.markdown(res)
-                f = generar_word("Sesión de Aprendizaje", res, {"ie": ie_nombre, "distrito": distrito_sel, "nivel": nivel_sel, "grado": grado_sel, "area": area_sel, "enfoque": "Transversal", "situacion": s_titulo})
-                st.download_button("📥 Descargar Word", f, "Sesion.docx")
+    if st.button("📅 Generar Plan Anual"):
+        p_user = f"Programación Anual. Área: {area_sel}. Contexto: {sit_anual}. Distrito: {distrito_sel}. Organiza en 4 unidades."
+        res = procesar_ia("Programación Anual", p_user)
+        st.markdown(res)
+        meta = {"ie": ie_nombre, "distrito": distrito_sel, "nivel": nivel_sel, "grado": grado_sel, "area": area_sel, "enfoque": "CNEB", "situacion": sit_anual}
+        f = generar_word("Programación Anual", res, meta)
+        st.download_button("📥 Descargar Plan Anual", f, "Programacion_Anual.docx")
     st.markdown('</div>', unsafe_allow_html=True)
