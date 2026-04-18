@@ -13,34 +13,52 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ── 2. CONSTANTES E IDENTIDAD ──
+# ── 2. CONSTANTES Y DATOS CNEB ──
 NOMBRE_APP = "EDUPLAN IA - LA CONVENCIÓN"
 LIDER = "Prof. Percy Tapia"
 
-COMPETENCIAS_POR_AREA = {
-    "Matemática": [
-        "Resuelve problemas de cantidad",
-        "Resuelve problemas de regularidad, equivalencia y cambio",
-        "Resuelve problemas de gestión de datos e incertidumbre",
-        "Resuelve problemas de forma, movimiento y localización"
-    ],
-    "Comunicación": [
-        "Se comunica oralmente en su lengua materna",
-        "Lee diversos tipos de textos escritos en su lengua materna",
-        "Escribe diversos tipos de textos en su lengua materna"
-    ],
-    "CyT": [
-        "Indaga mediante métodos científicos para construir sus conocimientos",
-        "Explica el mundo físico basándose en conocimientos sobre los seres vivos, materia y energía, biodiversidad, Tierra y universo",
-        "Diseña y construye soluciones tecnológicas para resolver problemas de su entorno"
-    ],
-    "Personal Social": [
-        "Construye su identidad",
-        "Convive y participa democráticamente en la búsqueda del bien común",
-        "Interpreta críticamente fuentes diversas",
-        "Gestiona responsablemente el espacio y el ambiente",
-        "Gestiona responsablemente los recursos económicos"
-    ]
+# Distritos de la Provincia de La Convención
+DISTRITOS_LA_CONVENCION = [
+    "Santa Ana (Quillabamba)", "Echarati", "Huayopata", "Maranura", 
+    "Ocobamba", "Quellouno", "Kimbiri", "Pichari", "Vilcabamba", 
+    "Santa Teresa", "Inkawasi", "Villa Virgen", "Villa Kintiarina", "Megantoni"
+]
+
+# Áreas y Competencias según CNEB
+AREAS_CNEB = {
+    "Inicial": {
+        "Personal Social": ["Construye su identidad", "Convive y participa democráticamente"],
+        "Psicomotriz": ["Se desenvuelve de manera autónoma a través de su motricidad"],
+        "Comunicación": ["Se comunica oralmente", "Lee diversos tipos de textos", "Escribe diversos tipos de textos", "Crea proyectos desde los lenguajes artísticos"],
+        "Castellano como segunda lengua": ["Se comunica oralmente en castellano"],
+        "Matemática": ["Resuelve problemas de cantidad", "Resuelve problemas de forma, movimiento y localización"],
+        "Ciencia y Tecnología": ["Indaga mediante métodos científicos"]
+    },
+    "Primaria": {
+        "Personal Social": ["Construye su identidad", "Convive y participa democráticamente", "Interpreta críticamente fuentes diversas", "Gestiona responsablemente el espacio y el ambiente", "Gestiona responsablemente los recursos económicos"],
+        "Educación Física": ["Se desenvuelve de manera autónoma a través de su motricidad", "Asume una vida saludable", "Interactúa a través de sus habilidades sociomotrices"],
+        "Comunicación": ["Se comunica oralmente", "Lee diversos tipos de textos", "Escribe diversos tipos de textos"],
+        "Arte y Cultura": ["Aprecia de manera crítica manifestaciones artístico-culturales", "Crea proyectos desde los lenguajes artísticos"],
+        "Castellano como segunda lengua": ["Se comunica oralmente", "Lee diversos tipos de textos", "Escribe diversos tipos de textos"],
+        "Inglés": ["Se comunica oralmente", "Lee diversos tipos de textos", "Escribe diversos tipos de textos"],
+        "Matemática": ["Resuelve problemas de cantidad", "Resuelve problemas de regularidad, equivalencia y cambio", "Resuelve problemas de forma, movimiento y localización", "Resuelve problemas de gestión de datos e incertidumbre"],
+        "Ciencia y Tecnología": ["Indaga mediante métodos científicos", "Explica el mundo físico", "Diseña y construye soluciones tecnológicas"],
+        "Educación Religiosa": ["Construye su identidad como persona humana amada por Dios", "Asume la experiencia del encuentro personal y comunitario con Dios"],
+        "Competencias Transversales": ["Se desenvuelve en entornos virtuales generados por las TIC", "Gestiona su aprendizaje de manera autónoma"]
+    },
+    "Secundaria": {
+        "Desarrollo Personal, Ciudadanía y Cívica": ["Construye su identidad", "Convive y participa democráticamente"],
+        "Ciencias Sociales": ["Interpreta críticamente fuentes diversas", "Gestiona responsablemente el espacio y el ambiente", "Gestiona responsablemente los recursos económicos"],
+        "Educación Física": ["Se desenvuelve de manera autónoma", "Asume una vida saludable", "Interactúa a través de sus habilidades sociomotrices"],
+        "Comunicación": ["Se comunica oralmente", "Lee diversos tipos de textos", "Escribe diversos tipos de textos"],
+        "Arte y Cultura": ["Aprecia de manera crítica", "Crea proyectos"],
+        "Inglés": ["Se comunica oralmente", "Lee diversos tipos de textos", "Escribe diversos tipos de textos"],
+        "Matemática": ["Resuelve problemas de cantidad", "Resuelve problemas de regularidad, equivalencia y cambio", "Resuelve problemas de forma, movimiento y localización", "Resuelve problemas de gestión de datos e incertidumbre"],
+        "Ciencia y Tecnología": ["Indaga mediante métodos científicos", "Explica el mundo físico", "Diseña y construye soluciones tecnológicas"],
+        "Educación Religiosa": ["Construye su identidad", "Asume la experiencia del encuentro"],
+        "Educación para el Trabajo": ["Gestiona proyectos de emprendimiento económico o social"],
+        "Competencias Transversales": ["Se desenvuelve en TIC", "Gestiona su aprendizaje"]
+    }
 }
 
 ENFOQUES_TRANSVERSALES = [
@@ -52,11 +70,12 @@ ENFOQUES_TRANSVERSALES = [
 
 SITUACIONES_CONTEXTO = [
     "Cosecha de Café y Cacao en la provincia",
-    "Cuidado de la biodiversidad en ceja de selva",
+    "Turismo vivencial en la selva convenciana",
     "Fenómenos naturales (lluvias e inundaciones)",
     "Identidad cultural y festividades locales",
     "Salud y alimentación nutritiva regional",
-    "Uso responsable de la tecnología en el aula"
+    "Uso responsable de la tecnología en el aula",
+    "Conservación de suelos y medio ambiente"
 ]
 
 # ── 3. CLIENTE IA ──
@@ -71,12 +90,12 @@ client = get_client()
 
 # ── 4. PROMPT MAESTRO ──
 PROMPT_SISTEMA = (
-    "Eres un asistente pedagógico de élite experto en el CNEB del Perú y el Currículo Regional de Cusco. "
-    "Tu objetivo es ayudar a docentes de La Convención a planificar con precisión técnica.\n\n"
+    "Eres un asistente pedagógico de élite experto en el CNEB del Perú y el Currículo Regional de Cusco (PER). "
+    "Tu objetivo es ayudar a docentes de la Provincia de La Convención a planificar con precisión técnica.\n\n"
     "ESTRUCTURA OBLIGATORIA:\n"
     "1. Usa TABLAS detalladas para la secuencia didáctica y matrices de evaluación.\n"
-    "2. Incluye obligatoriamente: Competencias, Capacidades, Desempeños y Criterios de Evaluación.\n"
-    "3. Contextualización: Integra el entorno de La Convención (clima, agricultura, historia local).\n"
+    "2. Incluye obligatoriamente: Competencias, Capacidades, Desempeños y Criterios de Evaluación por cada actividad.\n"
+    "3. Contextualización Local: DEBES mencionar el distrito seleccionado y elementos de la selva convenciana.\n"
     "4. Tono: Académico, motivador y respetuoso con la labor docente."
 )
 
@@ -102,11 +121,9 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# ── 6. LÓGICA DE APOYO (MEJORADA PARA MINEDU/CNEB) ──
+# ── 6. LÓGICA DE APOYO ──
 def generar_word(tipo, contenido, metadatos):
     doc = Document()
-    
-    # Estilo base
     style = doc.styles['Normal']
     font = style.font
     font.name = 'Arial'
@@ -122,15 +139,16 @@ def generar_word(tipo, contenido, metadatos):
     title = doc.add_heading(tipo.upper(), level=1)
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
     
-    doc.add_paragraph() # Espacio
+    doc.add_paragraph() 
     
-    # Tabla de Datos Informativos (Formato MINEDU)
+    # Tabla de Datos Informativos
     doc.add_heading("I. DATOS INFORMATIVOS", level=2)
-    table = doc.add_table(rows=6, cols=2)
+    table = doc.add_table(rows=7, cols=2)
     table.style = 'Table Grid'
     
     items = [
         ("INSTITUCIÓN EDUCATIVA", metadatos['ie']),
+        ("UBICACIÓN (DISTRITO)", metadatos['distrito']),
         ("NIVEL / GRADO / SECCIÓN", f"{metadatos['nivel']} - {metadatos['grado']}"),
         ("ÁREA CURRICULAR", metadatos['area']),
         ("DOCENTE", LIDER),
@@ -146,22 +164,15 @@ def generar_word(tipo, contenido, metadatos):
 
     doc.add_paragraph()
     doc.add_heading("II. DESARROLLO DE LA PLANIFICACIÓN", level=2)
-    
-    # Insertar el contenido de la IA
     doc.add_paragraph(contenido)
 
-    # Pie de página para firmas
+    # Espacio para firmas
     doc.add_paragraph("\n\n")
-    # Creamos una tabla invisible para las firmas
     signature_table = doc.add_table(rows=1, cols=2)
-    signature_table.autofit = True
-    
-    # Celda Docente
     p1 = signature_table.cell(0, 0).paragraphs[0]
     p1.alignment = WD_ALIGN_PARAGRAPH.CENTER
     p1.add_run("__________________________\nDocente de Aula").bold = True
     
-    # Celda Director
     p2 = signature_table.cell(0, 1).paragraphs[0]
     p2.alignment = WD_ALIGN_PARAGRAPH.CENTER
     p2.add_run("__________________________\nDirector / V°B°").bold = True
@@ -190,19 +201,35 @@ st.markdown(f"""
     <div style="background: linear-gradient(135deg, #0f172a 0%, #1e40af 100%); 
                 padding: 2.5rem; border-radius: 1.2rem; text-align: center; color: white; margin-bottom: 2rem;">
         <h1 style="color: white; margin:0;">🏛️ {NOMBRE_APP}</h1>
-        <p style="font-size: 1.2rem; opacity: 0.9;">Planificación Curricular Inteligente 2026</p>
+        <p style="font-size: 1.2rem; opacity: 0.9;">Planificación Curricular Inteligente Quillabamba - 2026</p>
     </div>
 """, unsafe_allow_html=True)
 
-# ── 8. SIDEBAR ──
+# ── 8. SIDEBAR ACTUALIZADA ──
 with st.sidebar:
-    st.header("Datos Generales")
-    ie_nombre = st.text_input("Institución Educativa", "I.E. La Convención")
-    nivel = st.radio("Nivel Educativo", ["Primaria", "Secundaria"], horizontal=True)
-    grado = st.selectbox("Grado", ["1°", "2°", "3°", "4°", "5°", "6°"])
-    area = st.selectbox("Área Curricular", list(COMPETENCIAS_POR_AREA.keys()))
+    st.image("https://img.icons8.com/fluency/96/school.png", width=80)
+    st.header("Configuración del Centro")
+    ie_nombre = st.text_input("Nombre de la I.E.", "I.E. La Convención")
+    distrito_sel = st.selectbox("Distrito de Localización", DISTRITOS_LA_CONVENCION)
+    
     st.divider()
-    st.caption(f"Gestión: {LIDER}")
+    st.header("Datos Curriculares")
+    nivel_sel = st.radio("Nivel Educativo", ["Inicial", "Primaria", "Secundaria"], index=1)
+    
+    # Grados dinámicos según nivel
+    if nivel_sel == "Inicial":
+        grados_lista = ["3 años", "4 años", "5 años"]
+    else:
+        grados_lista = ["1°", "2°", "3°", "4°", "5°", "6°"] if nivel_sel == "Primaria" else ["1°", "2°", "3°", "4°", "5°"]
+    
+    grado_sel = st.selectbox("Grado", grados_lista)
+    
+    # Áreas dinámicas según nivel
+    areas_lista = list(AREAS_CNEB[nivel_sel].keys())
+    area_sel = st.selectbox("Área Curricular", areas_lista)
+    
+    st.divider()
+    st.caption(f"Responsable Técnico: {LIDER}")
 
 # ── 9. CUERPO PRINCIPAL (TABS) ──
 tabs = st.tabs(["📅 PROG. ANUAL", "📂 UNIDAD", "🚀 SESIÓN"])
@@ -210,74 +237,74 @@ tabs = st.tabs(["📅 PROG. ANUAL", "📂 UNIDAD", "🚀 SESIÓN"])
 # --- TAB 1: PROGRAMACIÓN ANUAL ---
 with tabs[0]:
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("Configuración de la Programación Anual")
+    st.subheader("Planificación Anual")
     col1, col2 = st.columns(2)
     with col1:
-        tiempo = st.selectbox("Periodo Académico", ["Trimestral", "Bimestral"], key="anual_periodo")
-        situacion = st.selectbox("Situación Eje de Contexto", SITUACIONES_CONTEXTO, key="anual_sit")
+        tiempo = st.selectbox("Periodo", ["Trimestral", "Bimestral"], key="anual_periodo")
+        sit_anual = st.selectbox("Situación de Contexto", SITUACIONES_CONTEXTO, key="anual_sit")
     with col2:
-        enfoques = st.multiselect("Enfoques Transversales", ENFOQUES_TRANSVERSALES, [ENFOQUES_TRANSVERSALES[0]], key="anual_enf")
+        enf_anual = st.multiselect("Enfoques Transversales", ENFOQUES_TRANSVERSALES, [ENFOQUES_TRANSVERSALES[0]], key="anual_enf")
     
-    competencias = st.multiselect("Seleccione Competencias Priorizadas", COMPETENCIAS_POR_AREA[area], key="anual_comp")
+    comp_anual = st.multiselect("Competencias Priorizadas", AREAS_CNEB[nivel_sel][area_sel], key="anual_comp")
     
-    if st.button("🚀 Generar Plan Anual"):
-        if not competencias:
-            st.warning("Seleccione al menos una competencia.")
+    if st.button("🚀 Generar Programación Anual"):
+        if not comp_anual:
+            st.warning("Seleccione competencias.")
         else:
-            p_user = f"Área: {area}, Grado: {grado}, Periodo: {tiempo}, Situación: {situacion}, Enfoques: {enfoques}, Competencias: {competencias}. Estructura el plan anual con metas de aprendizaje y organización de unidades."
-            with st.spinner("Construyendo visión anual..."):
+            p_user = f"Nivel: {nivel_sel}, Área: {area_sel}, Grado: {grado_sel}, Distrito: {distrito_sel}, Situación: {sit_anual}, Competencias: {comp_anual}. Elabora el cuadro de organización de unidades por periodos."
+            with st.spinner("Construyendo plan anual..."):
                 res = procesar_ia("Programación Anual", p_user)
                 st.markdown(res)
-                f = generar_word("Programación Anual", res, {"ie": ie_nombre, "nivel": nivel, "grado": grado, "area": area, "enfoque": ", ".join(enfoques), "situacion": situacion})
-                st.download_button("📥 Descargar Word Oficial", f, "Plan_Anual.docx")
+                f = generar_word("Programación Anual", res, {"ie": ie_nombre, "distrito": distrito_sel, "nivel": nivel_sel, "grado": grado_sel, "area": area_sel, "enfoque": ", ".join(enf_anual), "situacion": sit_anual})
+                st.download_button("📥 Descargar Word", f, "Plan_Anual.docx")
     st.markdown('</div>', unsafe_allow_html=True)
 
 # --- TAB 2: UNIDAD DIDÁCTICA ---
 with tabs[1]:
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("Diseño de la Unidad de Aprendizaje")
-    u_titulo = st.text_input("Título de la Unidad", placeholder="Ej. Valoramos la riqueza del cacao convenciano")
+    st.subheader("Unidad de Aprendizaje")
+    u_titulo = st.text_input("Título de la Unidad", placeholder="Ej. Promovemos el consumo del cacao en Quillabamba")
     col3, col4 = st.columns(2)
     with col3:
-        duracion = st.text_input("Duración (semanas/sesiones)", "4 semanas")
+        u_dur = st.text_input("Duración estimada", "4 semanas")
         u_enf = st.selectbox("Enfoque Principal", ENFOQUES_TRANSVERSALES, key="uni_enf")
     with col4:
-        evidencia = st.text_input("Producto/Evidencia Final", "Ej. Álbum descriptivo, Prototipo, etc.")
-        u_comp = st.multiselect("Competencias de la Unidad", COMPETENCIAS_POR_AREA[area], key="uni_comp")
+        u_evid = st.text_input("Evidencia Final", "Ej. Tríptico informativo")
+        u_comp = st.multiselect("Competencias", AREAS_CNEB[nivel_sel][area_sel], key="uni_comp")
     
-    if st.button("🎨 Generar Unidad"):
+    if st.button("🎨 Diseñar Unidad"):
         if not u_titulo or not u_comp:
-            st.warning("Complete el título y las competencias.")
+            st.warning("Faltan datos obligatorios.")
         else:
-            p_user = f"Título: {u_titulo}, Duración: {duracion}, Evidencia: {evidencia}, Competencias: {u_comp}, Enfoque: {u_enf}, Área: {area}. Diseña la situación significativa detallada y la secuencia de sesiones."
-            with st.spinner("Diseñando unidad pedagógica..."):
+            p_user = f"Título: {u_titulo}, Distrito: {distrito_sel}, Nivel: {nivel_sel}, Área: {area_sel}, Grado: {grado_sel}, Duración: {u_dur}, Competencias: {u_comp}. Redacta la situación significativa y la secuencia de sesiones."
+            with st.spinner("Diseñando unidad..."):
                 res = procesar_ia("Unidad de Aprendizaje", p_user)
                 st.markdown(res)
-                f = generar_word("Unidad de Aprendizaje", res, {"ie": ie_nombre, "nivel": nivel, "grado": grado, "area": area, "enfoque": u_enf, "situacion": u_titulo})
-                st.download_button("📥 Descargar Word Oficial", f, "Unidad_Aprendizaje.docx")
+                f = generar_word("Unidad de Aprendizaje", res, {"ie": ie_nombre, "distrito": distrito_sel, "nivel": nivel_sel, "grado": grado_sel, "area": area_sel, "enfoque": u_enf, "situacion": u_titulo})
+                st.download_button("📥 Descargar Word", f, "Unidad.docx")
     st.markdown('</div>', unsafe_allow_html=True)
 
 # --- TAB 3: SESIÓN DE APRENDIZAJE ---
 with tabs[2]:
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("Desarrollo de la Sesión")
-    s_titulo = st.text_input("Nombre de la Sesión", placeholder="Ej. Conocemos los procesos de fermentación del café")
+    st.subheader("Sesión de Aprendizaje")
+    s_titulo = st.text_input("Nombre de la Sesión", placeholder="Ej. Investigamos el cultivo del café en Huayopata")
     col5, col6 = st.columns(2)
     with col5:
-        s_comp = st.selectbox("Competencia a trabajar", COMPETENCIAS_POR_AREA[area], key="ses_comp")
-        s_proposito = st.text_area("Propósito de la sesión", placeholder="¿Qué aprenderá el estudiante hoy?")
+        s_comp = st.selectbox("Competencia", AREAS_CNEB[nivel_sel][area_sel], key="ses_comp")
+        s_prop = st.text_area("Propósito", placeholder="¿Qué aprenderán hoy?")
     with col6:
-        s_estrategia = st.selectbox("Metodología Sugerida", ["Aprendizaje Basado en Problemas", "Aprendizaje Basado en Proyectos", "Aula Invertida", "Gamificación", "Indagación Científica"])
-        s_momentos = st.multiselect("Momentos a enfatizar", ["Inicio/Motivación", "Recojo de saberes previos", "Conflicto cognitivo", "Procesamiento de información", "Aplicación", "Cierre/Metacognición"], default=["Inicio/Motivación", "Procesamiento de información", "Cierre/Metacognición"])
+        s_met = st.selectbox("Estrategia", ["Aprendizaje Basado en Proyectos", "Indagación", "Juego de Roles", "Resolución de Problemas"])
+        s_mom = st.multiselect("Momentos", ["Inicio", "Desarrollo", "Cierre"], default=["Inicio", "Desarrollo", "Cierre"])
     
     if st.button("✨ Generar Sesión Detallada"):
         if not s_titulo:
-            st.warning("Ingrese un título para la sesión.")
+            st.warning("Ingrese título de sesión.")
         else:
-            p_user = f"Sesión: {s_titulo}, Competencia: {s_comp}, Propósito: {s_proposito}, Metodología: {s_estrategia}, Momentos clave: {s_momentos}. Genera una sesión con tabla de momentos, tiempos estimados, materiales y rúbrica de evaluación."
-            with st.spinner("Redactando secuencia didáctica..."):
+            p_user = f"Sesión: {s_titulo}, Distrito: {distrito_sel}, Nivel: {nivel_sel}, Grado: {grado_sel}, Área: {area_sel}, Competencia: {s_comp}, Propósito: {s_prop}. Genera la tabla detallada con procesos pedagógicos y didácticos."
+            with st.spinner("Redactando sesión..."):
                 res = procesar_ia("Sesión de Aprendizaje", p_user)
                 st.markdown(res)
-                f = generar_word("Sesión de Aprendizaje", res, {"ie": ie_nombre, "nivel": nivel, "grado": grado, "area": area, "enfoque": "Transversal", "situacion": s_titulo})
-                st.download_button("📥 Descargar Word Oficial", f, "Sesion_Aprendizaje.docx")
+                f = generar_word("Sesión de Aprendizaje", res, {"ie": ie_nombre, "distrito": distrito_sel, "nivel": nivel_sel, "grado": grado_sel, "area": area_sel, "enfoque": "Transversal", "situacion": s_titulo})
+                st.download_button("📥 Descargar Word", f, "Sesion.docx")
     st.markdown('</div>', unsafe_allow_html=True)
