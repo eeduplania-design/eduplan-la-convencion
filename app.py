@@ -80,13 +80,30 @@ ESTRUCTURA OBLIGATORIA (UNIDAD DIDÁCTICA / EXPERIENCIA DE APRENDIZAJE):
 """
     elif tipo_doc == "Sesión de Aprendizaje":
         base += f"""
-ESTRUCTURA OBLIGATORIA (SESIÓN DE APRENDIZAJE CNEB):
-1. **Datos Informativos.**
-2. **Propósitos de Aprendizaje:** TABLA con Competencia, Capacidades, Desempeño Precisado, Criterio de Evaluación, Evidencia e Instrumento.
-3. **Secuencia Didáctica (El núcleo):**
-   - **INICIO (20 min):** Motivación, Saberes Previos, Problematización (Conflicto Cognitivo) y Propósito de la sesión.
-   - **DESARROLLO (60 min):** APLICA LOS PROCESOS DIDÁCTICOS DEL ÁREA DE {area}. Detalla las actividades del docente y los estudiantes.
-   - **CIERRE (10 min):** Evaluación formativa y Metacognición (¿Qué aprendimos?, etc.).
+ESTRUCTURA OBLIGATORIA ESTRICTA (SESIÓN DE APRENDIZAJE CNEB):
+**Sesión de Aprendizaje N° 01: [Escribe el título sugerido]**
+
+**I.- Datos Informativos:**
+(Nombre de Institución Educativa, Nivel, Grado, Sección, Área curricular, Nombre del docente, Duración, Fecha). Llena los datos con la información proporcionada y usa "___" para la sección y fecha si no se especifican.
+
+**II.- Propósitos de Aprendizaje y Evaluación:**
+TABLA con las siguientes columnas: Área | Competencia | Capacidad(es) | Desempeño precisado al grado | Evidencia de aprendizaje | Criterio de evaluación (¿Qué observaré?) | Instrumento de evaluación.
+
+**III.- Enfoques Transversales:**
+TABLA o lista con: Enfoque | Valor o actitud que se promueve | Comportamiento observable durante la sesión.
+
+**IV.- Preparación de la Sesión:**
+- ¿Qué necesitamos hacer antes de la sesión?
+- ¿Qué recursos o materiales se utilizarán?
+
+**V.- Secuencia Didáctica:**
+- **INICIO (Tiempo sugerido):** Estrategias/Actividades (Motivación, Saberes Previos, Problematización y Propósito).
+- **DESARROLLO (Tiempo sugerido):** Estrategias/Actividades. ¡MUY IMPORTANTE! DEBES APLICAR ESTRICTAMENTE LOS PROCESOS DIDÁCTICOS DEL ÁREA DE {area}.
+- **CIERRE (Tiempo sugerido):** Estrategias/Actividades (Evaluación formativa y Metacognición).
+
+**VI.- Anexos:**
+- **Anexo N° 1: Instrumento de Evaluación:** (Crea el instrumento real, por ejemplo una lista de cotejo o rúbrica con los criterios desarrollados).
+- **Anexo N° 2: Ficha de Trabajo para el Estudiante:** (Crea una ficha de trabajo completa, con título, indicaciones claras y preguntas, ejercicios o retos listos para que el estudiante los resuelva en clase. Debe estar 100% alineada al propósito de la sesión).
 """
     return base
 
@@ -307,6 +324,8 @@ def render_generador(tipo_doc, tab_key):
 
     # Payload simplificado
     payload = f"""
+- Institución Educativa: {ie_nombre}
+- Docente: {LIDER}
 - Nivel, Grado y Área: {nivel_global} - {grado_sel} - {area_sel}
 - Problema/Contexto Local: {contexto_doc}
 - Tema de la clase/unidad: {titulo_doc}
