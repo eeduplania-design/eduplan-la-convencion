@@ -10,357 +10,248 @@ from docx.oxml import OxmlElement
 
 # ── 1. CONFIGURACIÓN DE PÁGINA ──
 st.set_page_config(
-    page_title="EDUPLAN IA - FUTURISTA",
+    page_title="EDUPLAN IA - LABORATORIO PEDAGÓGICO",
     layout="wide",
-    page_icon="🤖",
+    page_icon="🧠",
     initial_sidebar_state="expanded",
 )
 
-# ── 2. ESTILOS FUTURISTAS (CSS AVANZADO) ──
+# ── 2. INTERFAZ FUTURISTA Y PEDAGÓGICA (CSS AVANZADO) ──
 st.markdown("""
     <style>
-    /* Fondo general y fuentes */
-    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap');
-    
-    .main {
-        background-color: #f0f4f8;
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&family=Syne:wght@400;700;800&display=swap');
+
+    /* Variables de Color */
+    :root {
+        --primary-glow: #00f2ff;
+        --secondary-glow: #7000ff;
+        --bg-pedagogico: #0a192f;
+        --text-main: #e6f1ff;
     }
-    
-    /* Tarjetas con efecto Glassmorphism */
+
+    /* Fondo de la Aplicación */
     .stApp {
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        background: radial-gradient(circle at top right, #1d2b44, #0a192f);
+        color: var(--text-main);
     }
-    
+
+    /* Contenedor de Tarjetas (Glassmorphism) */
     .card {
-        background: rgba(255, 255, 255, 0.7);
-        backdrop-filter: blur(10px);
-        border-radius: 20px;
-        padding: 30px;
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
-        margin-bottom: 25px;
-        transition: transform 0.3s ease;
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 24px;
+        padding: 40px;
+        margin-bottom: 30px;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
     .card:hover {
-        transform: translateY(-5px);
-        border: 1px solid #1e3a8a;
+        transform: translateY(-8px);
+        border: 1px solid var(--primary-glow);
+        box-shadow: 0 0 20px rgba(0, 242, 255, 0.2);
     }
 
-    /* Botones Futuristas */
-    .stButton > button {
-        background: linear-gradient(90deg, #1e3a8a 0%, #3b82f6 100%);
-        color: white;
-        border: none;
-        border-radius: 12px;
-        padding: 15px 25px;
-        font-family: 'Rajdhani', sans-serif;
-        font-weight: 700;
-        letter-spacing: 1px;
-        text-transform: uppercase;
-        box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
-        transition: all 0.3s ease;
-        width: 100%;
-    }
-    .stButton > button:hover {
-        background: linear-gradient(90deg, #3b82f6 0%, #1e3a8a 100%);
-        box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
-        transform: scale(1.02);
-        color: #ffffff;
-    }
-
-    /* Títulos y Subtítulos */
+    /* Títulos Impactantes */
     h1 {
-        font-family: 'Orbitron', sans-serif;
-        color: #1e3a8a;
+        font-family: 'Syne', sans-serif;
+        font-weight: 800;
+        background: linear-gradient(90deg, #00f2ff, #7000ff);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-size: 3.5rem !important;
         text-align: center;
-        text-transform: uppercase;
-        letter-spacing: 3px;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
-    }
-    h2, h3 {
-        font-family: 'Rajdhani', sans-serif;
-        color: #1e40af;
-        border-left: 5px solid #3b82f6;
-        padding-left: 15px;
-    }
-
-    /* Sidebar personalizada */
-    [data-testid="stSidebar"] {
-        background-color: #0f172a;
-    }
-    [data-testid="stSidebar"] * {
-        color: #e2e8f0 !important;
+        letter-spacing: -1px;
+        margin-bottom: 0px !important;
     }
     
-    /* Tabs Interactivas */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 10px;
-        background-color: transparent;
-    }
-    .stTabs [data-baseweb="tab"] {
-        background-color: rgba(255,255,255,0.5);
-        border-radius: 10px 10px 0 0;
-        padding: 10px 20px;
-        font-family: 'Rajdhani', sans-serif;
-        font-weight: bold;
-    }
-    .stTabs [aria-selected="true"] {
-        background-color: #1e3a8a !important;
-        color: white !important;
+    h2, h3 {
+        font-family: 'Space Grotesk', sans-serif;
+        color: var(--primary-glow);
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        font-weight: 500;
     }
 
-    /* Inputs */
-    .stTextInput > div > div > input, .stTextArea > div > div > textarea {
-        border-radius: 10px;
-        border: 1px solid #cbd5e1;
+    /* Botones de Acción Futuristas */
+    .stButton > button {
+        background: linear-gradient(45deg, #00f2ff 0%, #0066ff 100%);
+        color: white;
+        border: none;
+        border-radius: 15px;
+        padding: 18px 30px;
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 700;
+        font-size: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        width: 100%;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    .stButton > button:hover {
+        transform: scale(1.03);
+        box-shadow: 0 0 30px rgba(0, 242, 255, 0.5);
+        color: #fff;
+    }
+    .stButton > button:active {
+        transform: scale(0.98);
+    }
+
+    /* Estilo de la Sidebar */
+    [data-testid="stSidebar"] {
+        background: #020c1b;
+        border-right: 1px solid rgba(0, 242, 255, 0.2);
+    }
+    [data-testid="stSidebar"] h3 {
+        font-size: 1.2rem;
+        color: #ccd6f6;
+    }
+
+    /* Tabs (Pestañas) Personalizadas */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 15px;
+        border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+    }
+    .stTabs [data-baseweb="tab"] {
+        height: 60px;
+        background-color: transparent !important;
+        color: #8892b0 !important;
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 600;
+        transition: all 0.3s;
+    }
+    .stTabs [aria-selected="true"] {
+        color: var(--primary-glow) !important;
+        border-bottom-color: var(--primary-glow) !important;
+    }
+
+    /* Inputs de Texto */
+    input, textarea, select {
+        background: rgba(0, 0, 0, 0.2) !important;
+        color: white !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 12px !important;
+    }
+    
+    /* Animación de carga personalizada */
+    .stSpinner > div {
+        border-top-color: var(--primary-glow) !important;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# ── 3. DATOS CNEB ──
-NOMBRE_APP = "EDUPLAN IA - LA CONVENCIÓN"
-LIDER = "Prof. Percy Tapia"
-
-DISTRITOS_LA_CONVENCION = [
-    "Santa Ana (Quillabamba)", "Echarati", "Huayopata", "Maranura", 
-    "Ocobamba", "Quellouno", "Kimbiri", "Pichari", "Vilcabamba", 
-    "Santa Teresa", "Inkawasi", "Villa Virgen", "Villa Kintiarina", "Megantoni"
-]
-
+# ── 3. CONSTANTES Y DATOS CNEB ──
+DISTRITOS = ["Santa Ana (Quillabamba)", "Echarati", "Huayopata", "Maranura", "Ocobamba", "Quellouno", "Kimbiri", "Pichari", "Vilcabamba", "Santa Teresa", "Inkawasi", "Villa Virgen", "Villa Kintiarina", "Megantoni"]
 AREAS_CNEB = {
-    "Inicial": {
-        "Personal Social": ["Construye su identidad", "Convive y participa democráticamente"],
-        "Psicomotriz": ["Se desenvuelve de manera autónoma a través de su motricidad"],
-        "Comunicación": ["Se comunica oralmente", "Lee diversos tipos de textos", "Escribe diversos tipos de textos", "Crea proyectos desde los lenguajes artísticos"],
-        "Castellano como segunda lengua": ["Se comunica oralmente en castellano"],
-        "Matemática": ["Resuelve problemas de cantidad", "Resuelve problemas de forma, movimiento y localización"],
-        "Ciencia y Tecnología": ["Indaga mediante métodos científicos"]
-    },
-    "Primaria": {
-        "Personal Social": ["Construye su identidad", "Convive y participa democráticamente", "Interpreta críticamente fuentes diversas", "Gestiona responsablemente el espacio y el ambiente", "Gestiona responsablemente los recursos económicos"],
-        "Educación Física": ["Se desenvuelve de manera autónoma a través de su motricidad", "Asume una vida saludable", "Interactúa a través de sus habilidades sociomotrices"],
-        "Comunicación": ["Se comunica oralmente", "Lee diversos tipos de textos", "Escribe diversos tipos de textos"],
-        "Arte y Cultura": ["Aprecia de manera crítica manifestaciones artístico-culturales", "Crea proyectos desde los lenguajes artísticos"],
-        "Castellano como segunda lengua": ["Se comunica oralmente", "Lee diversos tipos de textos", "Escribe diversos tipos de textos"],
-        "Inglés": ["Se comunica oralmente", "Lee diversos tipos de textos", "Escribe diversos tipos de textos"],
-        "Matemática": ["Resuelve problemas de cantidad", "Resuelve problemas de regularidad, equivalencia y cambio", "Resuelve problemas de forma, movimiento y localización", "Resuelve problemas de gestión de datos e incertidumbre"],
-        "Ciencia y Tecnología": ["Indaga mediante métodos científicos", "Explica el mundo físico", "Diseña y construye soluciones tecnológicas"],
-        "Educación Religiosa": ["Construye su identidad como persona humana amada por Dios", "Asume la experiencia del encuentro personal y comunitario con Dios"],
-        "Competencias Transversales": ["Se desenvuelve en entornos virtuales generados por las TIC", "Gestiona su aprendizaje de manera autónoma"]
-    },
-    "Secundaria": {
-        "Desarrollo Personal, Ciudadanía y Cívica": ["Construye su identidad", "Convive y participa democráticamente"],
-        "Ciencias Sociales": ["Interpreta críticamente fuentes diversas", "Gestiona responsablemente el espacio y el ambiente", "Gestiona responsablemente los recursos económicos"],
-        "Educación Física": ["Se desenvuelve de manera autónoma", "Asume una vida saludable", "Interactúa a través de sus habilidades sociomotrices"],
-        "Comunicación": ["Se comunica oralmente", "Lee diversos tipos de textos", "Escribe diversos tipos de textos"],
-        "Arte y Cultura": ["Aprecia de manera crítica", "Crea proyectos"],
-        "Inglés": ["Se comunica oralmente", "Lee diversos tipos de textos", "Escribe diversos tipos de textos"],
-        "Matemática": ["Resuelve problemas de cantidad", "Resuelve problemas de regularidad, equivalencia y cambio", "Resuelve problemas de forma, movimiento y localización", "Resuelve problemas de gestión de datos e incertidumbre"],
-        "Ciencia y Tecnología": ["Indaga mediante métodos científicos", "Explica el mundo físico", "Diseña y construye soluciones tecnológicas"],
-        "Educación Religiosa": ["Construye su identidad", "Asume la experiencia del encuentro"],
-        "Educación para el Trabajo": ["Gestiona proyectos de emprendimiento económico o social"],
-        "Competencias Transversales": ["Se desenvuelve en TIC", "Gestiona su aprendizaje"]
-    }
+    "Inicial": {"Personal Social": ["Construye su identidad", "Convive democráticamente"], "Comunicación": ["Se comunica oralmente", "Lee textos"]},
+    "Primaria": {"Matemática": ["Resuelve problemas de cantidad", "Regularidad"], "Comunicación": ["Lee diversos textos", "Escribe textos"], "Ciencia y Tecnología": ["Explica el mundo físico", "Indaga"]},
+    "Secundaria": {"Matemática": ["Resuelve problemas de cantidad"], "Comunicación": ["Lee textos"], "Ciencias Sociales": ["Gestiona responsablemente"]}
 }
-
-ENFOQUES_TRANSVERSALES = [
-    "Enfoque de Derechos", "Enfoque Inclusivo", "Enfoque Intercultural", 
-    "Enfoque Igualdad de Género", "Enfoque Ambiental", 
-    "Enfoque Orientación al bien común", "Enfoque Búsqueda de la Excelencia"
-]
-
-ESTRATEGIAS_METODOLOGICAS = [
-    "Aprendizaje Basado en Proyectos (ABP)", "Aprendizaje Basado en Problemas", 
-    "Aula Invertida (Flipped Classroom)", "Gamificación", 
-    "Aprendizaje Cooperativo", "Pensamiento de Diseño (Design Thinking)"
-]
-
-PRODUCTOS_ESPERADOS = [
-    "Portafolio de evidencias", "Prototipo tecnológico", "Ensayo argumentativo",
-    "Infografía de síntesis", "Maqueta o modelo", "Podcast educativo",
-    "Campaña de sensibilización", "Informe de indagación"
-]
 
 # ── 4. CLIENTE IA ──
 @st.cache_resource
 def get_client():
     api_key = st.secrets.get("ZHIPU_KEY", "")
-    if not api_key: return None
-    return ZhipuAI(api_key=api_key)
+    return ZhipuAI(api_key=api_key) if api_key else None
 
 client = get_client()
 
-# ── 5. FUNCIONES DE APOYO ──
-def set_table_header_bg(cell, color_hex):
-    tcPr = cell._tc.get_or_add_tcPr()
-    shd = OxmlElement('w:shd')
-    shd.set(qn('w:fill'), color_hex)
-    tcPr.append(shd)
-
+# ── 5. MOTOR DE GENERACIÓN WORD ──
 def generar_word(tipo, contenido, metadatos):
     doc = Document()
+    # Diseño de documento profesional
     section = doc.sections[0]
-    section.top_margin, section.bottom_margin = Inches(0.6), Inches(0.6)
+    section.top_margin = Inches(0.6)
     
-    p_header = doc.add_paragraph()
-    p_header.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run_h = p_header.add_run("“AÑO DE LA UNIDAD, LA PAZ Y EL DESARROLLO”")
-    run_h.italic = True
-    run_h.font.size = Pt(9)
-
     title = doc.add_paragraph()
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
     run_t = title.add_run(tipo.upper())
     run_t.bold = True
-    run_t.font.size = Pt(14)
-    run_t.font.color.rgb = RGBColor(30, 58, 138)
+    run_t.font.size = Pt(16)
+    run_t.font.color.rgb = RGBColor(0, 102, 204)
 
     doc.add_heading("I. DATOS INFORMATIVOS", level=1)
-    table_info = doc.add_table(rows=0, cols=2)
-    table_info.style = 'Table Grid'
-    for key, value in metadatos.items():
-        row = table_info.add_row().cells
-        row[0].text = key.upper()
-        set_table_header_bg(row[0], "BDE5F2")
-        row[0].paragraphs[0].runs[0].bold = True
-        row[1].text = str(value)
+    table = doc.add_table(rows=0, cols=2)
+    table.style = 'Table Grid'
+    for k, v in metadatos.items():
+        row = table.add_row().cells
+        row[0].text = k.upper()
+        row[1].text = str(v)
 
-    doc.add_paragraph()
-    doc.add_heading("II. DESARROLLO PEDAGÓGICO", level=1)
-
-    lines = contenido.split('\n')
-    i = 0
-    while i < len(lines):
-        line = lines[i].strip()
-        if not line: i += 1; continue
-        if line.startswith('###'):
-            doc.add_heading(line.replace('#', '').strip(), level=2)
-            i += 1
-        elif line.startswith('|') and i+1 < len(lines) and '-' in lines[i+1]:
-            headers = [h.strip() for h in line.split('|') if h.strip()]
-            i += 2
-            word_table = doc.add_table(rows=1, cols=len(headers))
-            word_table.style = 'Table Grid'
-            for idx, h_text in enumerate(headers):
-                cell = word_table.rows[0].cells[idx]
-                cell.text = h_text
-                set_table_header_bg(cell, "BDE5F2")
-                cell.paragraphs[0].runs[0].bold = True
-            while i < len(lines) and lines[i].strip().startswith('|'):
-                data = [d.strip() for d in lines[i].split('|') if d.strip()]
-                if len(data) >= len(headers):
-                    row_cells = word_table.add_row().cells
-                    for idx, d_text in enumerate(data[:len(headers)]):
-                        row_cells[idx].text = d_text
-                i += 1
-        else:
-            doc.add_paragraph(line.replace('**', '').replace('*', ''))
-            i += 1
-
+    doc.add_heading("II. CUERPO PEDAGÓGICO", level=1)
+    doc.add_paragraph(contenido)
+    
     buf = io.BytesIO()
     doc.save(buf)
     buf.seek(0)
     return buf
 
-# ── 6. HEADER PRINCIPAL ──
-st.markdown(f"<h1>{NOMBRE_APP}</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; font-family: Rajdhani; color: #64748b;'>Potenciando la labor docente con Inteligencia Artificial Avanzada</p>", unsafe_allow_html=True)
+# ── 6. HEADER ──
+st.markdown("<h1>EDUPLAN IA</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; font-size: 1.1rem; color: #8892b0;'>Ecosistema de Planificación Inteligente para el Docente Moderno</p>", unsafe_allow_html=True)
 
 # ── 7. SIDEBAR ──
 with st.sidebar:
-    st.markdown("### 💠 NÚCLEO DE CONFIGURACIÓN")
-    ie_nombre = st.text_input("NOMBRE I.E.", "I.E. La Convención")
-    distrito_sel = st.selectbox("DISTRITO UBICACIÓN", DISTRITOS_LA_CONVENCION)
+    st.markdown("### 🛠️ CONFIGURACIÓN")
+    ie_nombre = st.text_input("I.E.", "I.E. La Convención")
+    distrito = st.selectbox("DISTRITO", DISTRITOS)
     st.divider()
-    nivel_sel = st.radio("NIVEL EDUCATIVO", ["Inicial", "Primaria", "Secundaria"], index=1)
-    grados_map = {"Inicial": ["3 años", "4 años", "5 años"], "Primaria": ["1°", "2°", "3°", "4°", "5°", "6°"], "Secundaria": ["1°", "2°", "3°", "4°", "5°"]}
-    grado_sel = st.selectbox("GRADO / SECCIÓN", grados_map[nivel_sel])
-    area_sel = st.selectbox("ÁREA CURRICULAR", list(AREAS_CNEB[nivel_sel].keys()))
-    st.markdown(f"<div style='margin-top: 50px; text-align: center; opacity: 0.6;'>{LIDER}</div>", unsafe_allow_html=True)
+    nivel = st.radio("NIVEL", ["Inicial", "Primaria", "Secundaria"], index=1)
+    area = st.selectbox("ÁREA", list(AREAS_CNEB[nivel].keys()))
+    grado = st.text_input("GRADO/SECCIÓN", "3ero A")
 
-# ── 8. CUERPO INTERACTIVO (TABS) ──
-tab_anual, tab_unidad, tab_sesion = st.tabs(["📅 PROG. ANUAL", "📂 UNIDAD DIDÁCTICA", "🚀 SESIÓN DE CLASE"])
+# ── 8. CUERPO PRINCIPAL ──
+tab_anual, tab_unidad, tab_sesion = st.tabs(["📅 PLAN ANUAL", "📂 UNIDAD", "🚀 SESIÓN"])
 
-# PESTAÑA 1: ANUAL
 with tab_anual:
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("📋 Planificación Curricular de Largo Plazo")
-    c1, c2 = st.columns(2)
-    with c1:
-        pa_ciclo = st.selectbox("CICLO EDUCATIVO", ["II", "III", "IV", "V", "VI", "VII"], key="pa_ciclo")
-        pa_per = st.selectbox("ORGANIZACIÓN TEMPORAL", ["Bimestral", "Trimestral"], key="pa_per")
-    with c2:
-        pa_trans = st.multiselect("ENFOQUES TRANSVERSALES", ENFOQUES_TRANSVERSALES, key="pa_trans")
-        pa_metod = st.multiselect("METODOLOGÍAS CLAVE", ESTRATEGIAS_METODOLOGICAS, key="pa_metod")
+    st.subheader("📋 Planificación de Largo Plazo")
+    cols = st.columns(2)
+    pa_duracion = cols[0].text_input("DURACIÓN (AÑO)", "2024", key="pa_dur")
+    pa_metodo = cols[1].selectbox("METODOLOGÍA", ["ABP", "Aprendizaje Cooperativo", "Flipped Classroom"], key="pa_met")
+    pa_contexto = st.text_area("CONTEXTO DE LA I.E.", "Describe tu realidad escolar...", key="pa_cont")
     
-    pa_unidades = st.text_area("PROYECCIÓN DE UNIDADES (Títulos y temas clave)", placeholder="Ej: Unidad 1: Nos adaptamos..., Unidad 2: Valoramos la agricultura...", key="pa_units")
-
-    if st.button("🧬 GENERAR ESTRUCTURA ANUAL", key="btn_anual"):
-        if not pa_unidades:
-            st.warning("Debe ingresar la proyección de unidades.")
-        else:
-            with st.spinner("Sincronizando con redes neuronales..."):
-                prompt = f"Genera Programación Anual CNEB para {ie_nombre}. Grado: {grado_sel}, Área: {area_sel}. Ciclo: {pa_ciclo}. Organización: {pa_per}. Unidades: {pa_unidades}. Enfoques: {pa_trans}."
-                if client:
-                    res = client.chat.completions.create(model="glm-4-flash", messages=[{"role": "user", "content": prompt}]).choices[0].message.content
-                    st.markdown("### 🖥️ VISTA PREVIA")
-                    st.markdown(res)
-                    meta = {"IE": ie_nombre, "Grado": grado_sel, "Área": area_sel, "Ciclo": pa_ciclo}
-                    st.download_button("📥 DESCARGAR DOCUMENTO MAESTRO", generar_word("Programación Anual", res, meta), "Plan_Anual_IA.docx")
+    if st.button("🧬 SINTETIZAR PLAN ANUAL", key="btn_anual"):
+        with st.spinner("Procesando estructura curricular..."):
+            prompt = f"Genera un Plan Anual CNEB para {ie_nombre}. Área: {area}, Nivel: {nivel}. Contexto: {pa_contexto}."
+            if client:
+                res = client.chat.completions.create(model="glm-4-flash", messages=[{"role": "user", "content": prompt}]).choices[0].message.content
+                st.markdown(res)
+                meta = {"IE": ie_nombre, "Área": area, "Nivel": nivel, "Metodología": pa_metodo}
+                st.download_button("📥 DESCARGAR PLAN ANUAL", generar_word("Plan Anual", res, meta), "Plan_Anual.docx")
     st.markdown('</div>', unsafe_allow_html=True)
 
-# PESTAÑA 2: UNIDAD
 with tab_unidad:
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("📂 Diseño de la Unidad de Aprendizaje")
-    u_c1, u_c2 = st.columns(2)
-    with u_c1:
-        u_titulo = st.text_input("TÍTULO DE LA UNIDAD", key="u_tit")
-        u_dur = st.text_input("DURACIÓN ESTIMADA", "4 semanas", key="u_dur")
-    with u_c2:
-        u_prod = st.selectbox("PRODUCTO FINAL", PRODUCTOS_ESPERADOS, key="u_prod")
-        u_comps = st.multiselect("COMPETENCIAS PRIORIZADAS", AREAS_CNEB[nivel_sel][area_sel], key="u_comp")
+    st.subheader("📂 Unidad de Aprendizaje")
+    u_titulo = st.text_input("NOMBRE DE LA UNIDAD", "Valoramos nuestra cultura", key="u_tit")
+    u_situacion = st.text_area("SITUACIÓN SIGNIFICATIVA", key="u_situ")
     
-    u_situ = st.text_area("SITUACIÓN SIGNIFICATIVA (Contexto y Reto)", key="u_situ")
-
-    if st.button("🛸 GENERAR UNIDAD DIDÁCTICA", key="btn_unidad"):
-        if not u_titulo:
-            st.error("El título de la unidad es obligatorio.")
-        else:
-            with st.spinner("Procesando arquitectura de unidad..."):
-                prompt = f"Genera Unidad de Aprendizaje CNEB. Título: {u_titulo}. Situación: {u_situ}. Producto: {u_prod}. Competencias: {u_comps}."
-                if client:
-                    res = client.chat.completions.create(model="glm-4-flash", messages=[{"role": "user", "content": prompt}]).choices[0].message.content
-                    st.markdown("### 🖥️ VISTA PREVIA")
-                    st.markdown(res)
-                    meta = {"IE": ie_nombre, "Unidad": u_titulo, "Producto": u_prod}
-                    st.download_button("📥 DESCARGAR UNIDAD (WORD)", generar_word("Unidad de Aprendizaje", res, meta), "Unidad_IA.docx")
+    if st.button("🛸 DISEÑAR UNIDAD", key="btn_unidad"):
+        with st.spinner("Generando arquitectura de aprendizaje..."):
+            prompt = f"Genera una Unidad Didáctica CNEB. Título: {u_titulo}. Situación: {u_situacion}. Área: {area}."
+            if client:
+                res = client.chat.completions.create(model="glm-4-flash", messages=[{"role": "user", "content": prompt}]).choices[0].message.content
+                st.markdown(res)
+                st.download_button("📥 DESCARGAR UNIDAD", generar_word("Unidad", res, {"IE": ie_nombre, "Unidad": u_titulo}), "Unidad.docx")
     st.markdown('</div>', unsafe_allow_html=True)
 
-# PESTAÑA 3: SESIÓN
 with tab_sesion:
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("🚀 Arquitectura de la Sesión de Clase")
-    s_c1, s_c2 = st.columns(2)
-    with s_c1:
-        s_titulo = st.text_input("TÍTULO DE LA SESIÓN", key="s_tit")
-        s_dur = st.selectbox("TIEMPO (MINUTOS)", [45, 90, 135], index=1, key="s_dur")
-    with s_c2:
-        s_comp = st.selectbox("COMPETENCIA CENTRAL", AREAS_CNEB[nivel_sel][area_sel], key="s_comp")
-        s_met = st.selectbox("METODOLOGÍA DE SESIÓN", ESTRATEGIAS_METODOLOGICAS, key="s_met")
+    st.subheader("🚀 Sesión de Clase Inmersiva")
+    s_titulo = st.text_input("TÍTULO DE SESIÓN", "Indagamos sobre...", key="s_tit")
+    s_desempeño = st.text_area("DESEMPEÑO A TRABAJAR", key="s_des")
     
-    s_des = st.text_area("DESEMPEÑO O CRITERIO ESPECÍFICO", key="s_des")
-
-    if st.button("⚡ GENERAR SESIÓN DE APRENDIZAJE", key="btn_sesion"):
-        if not s_titulo:
-            st.warning("Defina un título para la sesión.")
-        else:
-            with st.spinner("Materializando procesos pedagógicos..."):
-                prompt = f"Genera Sesión CNEB detallada. Título: {s_titulo}. Competencia: {s_comp}. Desempeño: {s_des}. Estructura: Inicio (Motivación, saberes, propósito), Desarrollo (Gestión y acompañamiento), Cierre (Meta-cognición)."
-                if client:
-                    res = client.chat.completions.create(model="glm-4-flash", messages=[{"role": "user", "content": prompt}]).choices[0].message.content
-                    st.markdown("### 🖥️ VISTA PREVIA")
-                    st.markdown(res)
-                    meta = {"IE": ie_nombre, "Sesión": s_titulo, "Competencia": s_comp}
-                    st.download_button("📥 DESCARGAR SESIÓN (WORD)", generar_word("Sesión de Aprendizaje", res, meta), "Sesion_IA.docx")
+    if st.button("✨ MATERIALIZAR SESIÓN", key="btn_sesion"):
+        with st.spinner("Creando procesos cognitivos..."):
+            prompt = f"Genera Sesión de Clase. Título: {s_titulo}. Desempeño: {s_desempeño}. Grado: {grado}."
+            if client:
+                res = client.chat.completions.create(model="glm-4-flash", messages=[{"role": "user", "content": prompt}]).choices[0].message.content
+                st.markdown(res)
+                st.download_button("📥 DESCARGAR SESIÓN", generar_word("Sesión", res, {"IE": ie_nombre, "Sesión": s_titulo}), "Sesion.docx")
     st.markdown('</div>', unsafe_allow_html=True)
+
+st.markdown("<div style='text-align: center; padding: 20px; opacity: 0.5;'>Sistema Desarrollado para la Excelencia Educativa en La Convención</div>", unsafe_allow_html=True)
