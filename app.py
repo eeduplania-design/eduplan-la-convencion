@@ -93,16 +93,28 @@ TABLA con las siguientes columnas: Área | Competencia | Capacidad(es) | Desempe
 TABLA o lista con: Enfoque | Valor o actitud que se promueve | Comportamiento observable durante la sesión.
 
 **IV.- Preparación de la Sesión:**
-- ¿Qué necesitamos hacer antes de la sesión?
-- ¿Qué recursos o materiales se utilizarán?
+Crea OBLIGATORIAMENTE una TABLA con dos columnas exactas: 
+| ¿Qué necesitamos hacer antes de la sesión? | ¿Qué recursos o materiales se utilizarán? |
 
 **V.- Secuencia Didáctica:**
-- **INICIO (Tiempo sugerido):** Estrategias/Actividades (Motivación, Saberes Previos, Problematización y Propósito).
-- **DESARROLLO (Tiempo sugerido):** Estrategias/Actividades. ¡MUY IMPORTANTE! DEBES APLICAR ESTRICTAMENTE LOS PROCESOS DIDÁCTICOS DEL ÁREA DE {area}.
-- **CIERRE (Tiempo sugerido):** Estrategias/Actividades (Evaluación formativa y Metacognición).
+Crea OBLIGATORIAMENTE una TABLA con tres columnas exactas:
+| Momentos | Estrategias / Actividades | Tiempo |
+- En la fila de INICIO: Describe Motivación, Saberes Previos, Problematización y Propósito.
+- En la fila de DESARROLLO: Describe detalladamente aplicando ESTRICTAMENTE LOS PROCESOS DIDÁCTICOS DEL ÁREA DE {area}.
+- En la fila de CIERRE: Describe la Evaluación formativa y Metacognición.
+
+**Firmas:**
+(Añade este espacio exacto antes de pasar a los anexos para la validación del documento):
+
+_______________________________________
+Docente: [Escribe el nombre del docente]
+
+_______________________________________
+V° B° Director(a) / Sub Director(a)
+
 
 **VI.- Anexos:**
-- **Anexo N° 1: Instrumento de Evaluación:** (Crea el instrumento real, por ejemplo una lista de cotejo o rúbrica con los criterios desarrollados).
+- **Anexo N° 1: Instrumento de Evaluación:** (Crea el instrumento real, por ejemplo una lista de cotejo o rúbrica en formato TABLA con los criterios desarrollados).
 - **Anexo N° 2: Ficha de Trabajo para el Estudiante:** (Crea una ficha de trabajo completa, con título, indicaciones claras y preguntas, ejercicios o retos listos para que el estudiante los resuelva en clase. Debe estar 100% alineada al propósito de la sesión).
 """
     return base
