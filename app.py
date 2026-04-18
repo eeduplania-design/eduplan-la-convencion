@@ -195,21 +195,21 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# ── 6. SIDEBAR ──
+# ── 6. SIDEBAR (DATOS COMUNES) ──
 with st.sidebar:
-    st.header("⚙️ Configuración")
-    ie_nombre = st.text_input("Institución Educativa", "I.E. La Convención")
-    distrito_sel = st.selectbox("Distrito", DISTRITOS_LA_CONVENCION)
+    st.header("🏛️ Datos de la I.E.")
+    ie_nombre_val = st.text_input("Institución Educativa", "I.E. La Convención")
+    distrito_sel_val = st.selectbox("Distrito", DISTRITOS_LA_CONVENCION)
     st.divider()
-    nivel_sel = st.radio("Nivel", ["Inicial", "Primaria", "Secundaria"], index=1)
+    nivel_sel_val = st.radio("Nivel Educativo", ["Inicial", "Primaria", "Secundaria"], index=1)
     
     grados_map = {
         "Inicial": ["3 años", "4 años", "5 años"],
         "Primaria": ["1°", "2°", "3°", "4°", "5°", "6°"],
         "Secundaria": ["1°", "2°", "3°", "4°", "5°"]
     }
-    grado_sel = st.selectbox("Grado", grados_map[nivel_sel])
-    area_sel = st.selectbox("Área Curricular", list(AREAS_CNEB[nivel_sel].keys()))
+    grado_sel_val = st.selectbox("Grado / Sección", grados_map[nivel_sel_val])
+    area_sel_val = st.selectbox("Área Curricular", list(AREAS_CNEB[nivel_sel_val].keys()))
 
 # ── 7. TABS (CORREGIDO: Sin dependencias cruzadas de st.session_state) ──
 tab_anual, tab_unidad, tab_sesion = st.tabs(["📅 P. ANUAL", "📂 UNIDAD", "🚀 SESIÓN"])
@@ -217,30 +217,29 @@ tab_anual, tab_unidad, tab_sesion = st.tabs(["📅 P. ANUAL", "📂 UNIDAD", "�
 # SECCIÓN 1: PROGRAMACIÓN ANUAL
 with tab_anual:
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("📋 Planificación Anual")
+    st.subheader("📋 Planificación Curricular Anual")
     col1, col2 = st.columns(2)
     with col1:
-        # Se capturan los valores directamente en variables para evitar KeyError
-        pa_ciclo = st.selectbox("Ciclo", ["II", "III", "IV", "V", "VI", "VII"], key="sel_ciclo")
-        pa_per = st.selectbox("Organización", ["Bimestral", "Trimestral"], key="sel_per")
+        pa_ciclo = st.selectbox("Ciclo", ["II", "III", "IV", "V", "VI", "VII"], key="anual_ciclo")
+        pa_per = st.selectbox("Organización del Periodo", ["Bimestral", "Trimestral"], key="anual_per")
     with col2:
-        pa_trans = st.multiselect("Enfoques Transversales", ENFOQUES_TRANSVERSALES, key="sel_trans")
-        pa_metod = st.multiselect("Metodologías", ESTRATEGIAS_METODOLOGICAS, key="sel_metod")
+        pa_trans = st.multiselect("Enfoques Transversales", ENFOQUES_TRANSVERSALES, key="anual_trans")
+        pa_metod = st.multiselect("Metodologías Priorizadas", ESTRATEGIAS_METODOLOGICAS, key="anual_metod")
     
-    pa_unidades = st.text_area("Títulos de las Unidades (Ej: U1: Cosechamos café...)", key="txt_unidades_anual")
+    pa_unidades = st.text_area("Proyección de Unidades (Título y propósito breve)", placeholder="Ej: U1: Nos conocemos... U2: Cosechamos café...", key="anual_unidades_txt")
 
-    if st.button("🚀 Generar Programación Anual", key="btn_gen_anual"):
+    if st.button("🚀 Generar Programación Anual", key="btn_anual"):
         if not pa_unidades:
-            st.warning("Ingrese los títulos de las unidades proyectadas.")
+            st.warning("Por favor, ingrese los títulos de las unidades proyectadas.")
         else:
-            with st.spinner("Procesando Programación Anual..."):
-                prompt = f"Genera Programación Anual CNEB para {ie_nombre}. Grado: {grado_sel}, Área: {area_sel}. Ciclo: {pa_ciclo}. Organización: {pa_per}. Unidades: {pa_unidades}. Enfoques: {pa_trans}. IMPORTANTE: Usa tablas Markdown con encabezados claros."
+            with st.spinner("Generando Programación Anual..."):
+                prompt = f"Actúa como un experto en CNEB Perú. Genera la PROGRAMACIÓN ANUAL para la IE {ie_nombre_val}. Grado: {grado_sel_val}, Área: {area_sel_val}. Ciclo: {pa_ciclo}. Organización: {pa_per}. Unidades planteadas: {pa_unidades}. Enfoques: {pa_trans}. IMPORTANTE: Usa tablas Markdown con color de fondo celeste en el encabezado."
                 if client:
                     res = client.chat.completions.create(model="glm-4-flash", messages=[{"role": "user", "content": prompt}]).choices[0].message.content
                     st.markdown(res)
-                    meta = {"IE": ie_nombre, "Grado": grado_sel, "Área": area_sel, "Ciclo": pa_ciclo, "Docente": LIDER}
+                    meta = {"IE": ie_nombre_val, "Grado": grado_sel_val, "Área": area_sel_val, "Ciclo": pa_ciclo, "Distrito": distrito_sel_val, "Docente": LIDER}
                     f = generar_word("Programación Anual", res, meta)
-                    st.download_button("📥 Descargar Word", f, "Prog_Anual_Celeste.docx")
+                    st.download_button("📥 Descargar Word (Celeste)", f, "Prog_Anual_Celeste.docx")
     st.markdown('</div>', unsafe_allow_html=True)
 
 # SECCIÓN 2: UNIDAD
@@ -249,27 +248,27 @@ with tab_unidad:
     st.subheader("📂 Unidad de Aprendizaje")
     u_col1, u_col2 = st.columns(2)
     with u_col1:
-        u_titulo = st.text_input("Título de la Unidad", key="input_u_tit")
-        u_duracion = st.text_input("Duración", "4 semanas", key="input_u_dur")
+        u_titulo = st.text_input("Título de la Unidad", key="u_titulo_in")
+        u_duracion = st.text_input("Duración estimadas", "4 semanas", key="u_dur_in")
     with u_col2:
-        u_producto = st.selectbox("Producto Principal", PRODUCTOS_ESPERADOS, key="sel_u_prod")
-        u_comp = st.multiselect("Competencias", AREAS_CNEB[nivel_sel][area_sel], key="sel_u_comp")
+        u_producto = st.selectbox("Producto de la Unidad", PRODUCTOS_ESPERADOS, key="u_prod_in")
+        u_comp = st.multiselect("Competencias a trabajar", AREAS_CNEB[nivel_sel_val][area_sel_val], key="u_comp_in")
     
-    u_sit = st.text_area("Situación Significativa", key="txt_u_sit")
-    u_ses = st.text_area("Secuencia de Sesiones", key="txt_u_ses")
+    u_sit = st.text_area("Situación Significativa (Reto / Contexto)", key="u_sit_in")
+    u_ses = st.text_area("Secuencia de Sesiones (Lista de títulos)", key="u_ses_in")
 
-    if st.button("📂 Generar Unidad Didáctica", key="btn_gen_unidad"):
+    if st.button("📂 Generar Unidad Didáctica", key="btn_unidad"):
         if not u_titulo or not u_sit:
-            st.error("Complete el Título y la Situación Significativa.")
+            st.error("El Título y la Situación Significativa son campos obligatorios.")
         else:
-            with st.spinner("Diseñando Unidad..."):
-                prompt = f"Genera Unidad de Aprendizaje CNEB. Título: {u_titulo}. Situación: {u_sit}. Grado: {grado_sel}, Área: {area_sel}. Producto: {u_producto}. Secuencia: {u_ses}. IMPORTANTE: Usa tablas para la matriz de competencias y propósitos."
+            with st.spinner("Diseñando Unidad Curricular..."):
+                prompt = f"Genera una UNIDAD DE APRENDIZAJE CNEB. Título: {u_titulo}. Situación Significativa: {u_sit}. Grado: {grado_sel_val}, Área: {area_sel_val}. Producto: {u_producto}. Secuencia de Sesiones: {u_ses}. IMPORTANTE: Usa tablas para la matriz de competencias y criterios."
                 if client:
                     res = client.chat.completions.create(model="glm-4-flash", messages=[{"role": "user", "content": prompt}]).choices[0].message.content
                     st.markdown(res)
-                    meta = {"IE": ie_nombre, "Unidad": u_titulo, "Grado": grado_sel, "Área": area_sel}
+                    meta = {"IE": ie_nombre_val, "Unidad": u_titulo, "Grado": grado_sel_val, "Área": area_sel_val, "Producto": u_producto}
                     f = generar_word("Unidad Didáctica", res, meta)
-                    st.download_button("📥 Descargar Word", f, "Unidad_Celeste.docx")
+                    st.download_button("📥 Descargar Word (Celeste)", f, "Unidad_Aprendizaje_Celeste.docx")
     st.markdown('</div>', unsafe_allow_html=True)
 
 # SECCIÓN 3: SESIÓN
@@ -278,24 +277,24 @@ with tab_sesion:
     st.subheader("🚀 Sesión de Aprendizaje")
     s_col1, s_col2 = st.columns(2)
     with s_col1:
-        s_titulo = st.text_input("Título de la Sesión", key="input_s_tit")
-        s_dur = st.selectbox("Duración (min)", [45, 90, 135], index=1, key="sel_s_dur")
+        s_titulo = st.text_input("Título de la Sesión", key="s_tit_in")
+        s_dur = st.selectbox("Duración en minutos", [45, 90, 135], index=1, key="s_dur_in")
     with s_col2:
-        s_comp = st.selectbox("Competencia", AREAS_CNEB[nivel_sel][area_sel], key="sel_s_comp")
-        s_met = st.selectbox("Estrategia", ESTRATEGIAS_METODOLOGICAS, key="sel_s_met")
+        s_comp_sel = st.selectbox("Competencia Principal", AREAS_CNEB[nivel_sel_val][area_sel_val], key="s_comp_in")
+        s_met_sel = st.selectbox("Estrategia Metodológica", ESTRATEGIAS_METODOLOGICAS, key="s_met_in")
     
-    s_des = st.text_area("Desempeño / Criterio", key="txt_s_des")
+    s_des_txt = st.text_area("Desempeño / Criterio de Evaluación", key="s_des_in")
 
-    if st.button("✨ Generar Sesión", key="btn_gen_sesion"):
+    if st.button("✨ Generar Sesión Detallada", key="btn_sesion"):
         if not s_titulo:
-            st.warning("Ingrese el título de la sesión.")
+            st.warning("Por favor, asigne un título a la sesión.")
         else:
             with st.spinner("Redactando procesos pedagógicos..."):
-                prompt = f"Genera Sesión de Aprendizaje CNEB. Título: {s_titulo}. Área: {area_sel}, Grado: {grado_sel}. Competencia: {s_comp}. Desempeño: {s_des}. Estructura: Inicio, Desarrollo y Cierre. IMPORTANTE: Usa tablas para propósitos y evaluación."
+                prompt = f"Genera una SESIÓN DE APRENDIZAJE CNEB completa. Título: {s_titulo}. Área: {area_sel_val}, Grado: {grado_sel_val}. Competencia: {s_comp_sel}. Desempeño: {s_des_txt}. Estructura: Inicio, Desarrollo y Cierre con procesos didácticos. IMPORTANTE: Usa tablas para propósitos de aprendizaje."
                 if client:
                     res = client.chat.completions.create(model="glm-4-flash", messages=[{"role": "user", "content": prompt}]).choices[0].message.content
                     st.markdown(res)
-                    meta = {"IE": ie_nombre, "Sesión": s_titulo, "Grado": grado_sel, "Área": area_sel}
+                    meta = {"IE": ie_nombre_val, "Sesión": s_titulo, "Grado": grado_sel_val, "Área": area_sel_val, "Estrategia": s_met_sel}
                     f = generar_word("Sesión de Aprendizaje", res, meta)
-                    st.download_button("📥 Descargar Word", f, "Sesion_Celeste.docx")
+                    st.download_button("📥 Descargar Word (Celeste)", f, "Sesion_Aprendizaje_Celeste.docx")
     st.markdown('</div>', unsafe_allow_html=True)
