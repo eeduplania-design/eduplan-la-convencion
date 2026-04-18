@@ -323,7 +323,7 @@ def procesar_ia(payload, prompt_sistema):
 
 # --- INTERFAZ PRINCIPAL ---
 
-logo_url = get_image_base64("logo.jpg")
+logo_url = get_image_base64("logo.png")
 
 st.markdown(f"""
     <div class="header-box">
