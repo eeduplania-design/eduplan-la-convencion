@@ -141,10 +141,10 @@ Crea OBLIGATORIAMENTE una TABLA con dos columnas exactas:
 
 **V.- Secuencia Didáctica (BAJO EL ENFOQUE: {enfoque_area}):**
 Crea OBLIGATORIAMENTE una TABLA con tres columnas exactas:
-| Momentos | Estrategias / Actividades | Tiempo |
-- En la fila de INICIO: Describe Motivación, Saberes Previos, Problematización (Conflicto cognitivo) y Propósito.
-- En la fila de DESARROLLO: DEBES ESCRIBIR EN NEGRITA CADA UNO DE LOS SIGUIENTES PROCESOS DIDÁCTICOS Y DESARROLLAR SU ACTIVIDAD: {procesos_area}. Promueve el razonamiento y no solo la memorización.
-- En la fila de CIERRE: Describe la Evaluación formativa y Metacognición.
+| Momentos | Estrategias / Actividades (DESCRIPCIÓN SÓLIDA Y PROFESIONAL) | Tiempo |
+- En la fila de INICIO: Explica detalladamente y paso a paso cómo se realizará la Motivación, el recojo de Saberes Previos, la Problematización (generación del conflicto cognitivo) y la presentación del Propósito. La redacción debe ser profunda, clara y evidenciar la interacción docente-estudiante.
+- En la fila de DESARROLLO (PROCESO): Esta es la parte más importante. DEBES ESCRIBIR EN NEGRITA CADA UNO DE LOS SIGUIENTES PROCESOS DIDÁCTICOS DEL ÁREA: {procesos_area}. Para cada proceso, explica a detalle las acciones del docente (mediación) y las acciones de los estudiantes. Explica cómo se promueve el razonamiento, el pensamiento crítico y la indagación (evita actividades mecánicas).
+- En la fila de CIERRE: Explica a detalle la Evaluación formativa (cómo se comprueba el aprendizaje) y la Metacognición (incluye preguntas reflexivas específicas y retadoras que se harán a los estudiantes).
 
 **Firmas:**
 (Añade este espacio exacto antes de pasar a los anexos para la validación del documento):
