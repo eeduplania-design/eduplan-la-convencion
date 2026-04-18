@@ -10,13 +10,114 @@ from docx.oxml import OxmlElement
 
 # ── 1. CONFIGURACIÓN DE PÁGINA ──
 st.set_page_config(
-    page_title="EDUPLAN IA - LA CONVENCIÓN",
+    page_title="EDUPLAN IA - FUTURISTA",
     layout="wide",
-    page_icon="🎓",
+    page_icon="🤖",
     initial_sidebar_state="expanded",
 )
 
-# ── 2. CONSTANTES Y DATOS CNEB ──
+# ── 2. ESTILOS FUTURISTAS (CSS AVANZADO) ──
+st.markdown("""
+    <style>
+    /* Fondo general y fuentes */
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap');
+    
+    .main {
+        background-color: #f0f4f8;
+    }
+    
+    /* Tarjetas con efecto Glassmorphism */
+    .stApp {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    }
+    
+    .card {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 30px;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+        margin-bottom: 25px;
+        transition: transform 0.3s ease;
+    }
+    .card:hover {
+        transform: translateY(-5px);
+        border: 1px solid #1e3a8a;
+    }
+
+    /* Botones Futuristas */
+    .stButton > button {
+        background: linear-gradient(90deg, #1e3a8a 0%, #3b82f6 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 15px 25px;
+        font-family: 'Rajdhani', sans-serif;
+        font-weight: 700;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+        transition: all 0.3s ease;
+        width: 100%;
+    }
+    .stButton > button:hover {
+        background: linear-gradient(90deg, #3b82f6 0%, #1e3a8a 100%);
+        box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
+        transform: scale(1.02);
+        color: #ffffff;
+    }
+
+    /* Títulos y Subtítulos */
+    h1 {
+        font-family: 'Orbitron', sans-serif;
+        color: #1e3a8a;
+        text-align: center;
+        text-transform: uppercase;
+        letter-spacing: 3px;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+    }
+    h2, h3 {
+        font-family: 'Rajdhani', sans-serif;
+        color: #1e40af;
+        border-left: 5px solid #3b82f6;
+        padding-left: 15px;
+    }
+
+    /* Sidebar personalizada */
+    [data-testid="stSidebar"] {
+        background-color: #0f172a;
+    }
+    [data-testid="stSidebar"] * {
+        color: #e2e8f0 !important;
+    }
+    
+    /* Tabs Interactivas */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 10px;
+        background-color: transparent;
+    }
+    .stTabs [data-baseweb="tab"] {
+        background-color: rgba(255,255,255,0.5);
+        border-radius: 10px 10px 0 0;
+        padding: 10px 20px;
+        font-family: 'Rajdhani', sans-serif;
+        font-weight: bold;
+    }
+    .stTabs [aria-selected="true"] {
+        background-color: #1e3a8a !important;
+        color: white !important;
+    }
+
+    /* Inputs */
+    .stTextInput > div > div > input, .stTextArea > div > div > textarea {
+        border-radius: 10px;
+        border: 1px solid #cbd5e1;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# ── 3. DATOS CNEB ──
 NOMBRE_APP = "EDUPLAN IA - LA CONVENCIÓN"
 LIDER = "Prof. Percy Tapia"
 
@@ -80,7 +181,7 @@ PRODUCTOS_ESPERADOS = [
     "Campaña de sensibilización", "Informe de indagación"
 ]
 
-# ── 3. CLIENTE IA ──
+# ── 4. CLIENTE IA ──
 @st.cache_resource
 def get_client():
     api_key = st.secrets.get("ZHIPU_KEY", "")
@@ -89,9 +190,8 @@ def get_client():
 
 client = get_client()
 
-# ── 4. FUNCIONES DE APOYO ──
+# ── 5. FUNCIONES DE APOYO ──
 def set_table_header_bg(cell, color_hex):
-    """Aplica color de fondo a una celda de tabla Word"""
     tcPr = cell._tc.get_or_add_tcPr()
     shd = OxmlElement('w:shd')
     shd.set(qn('w:fill'), color_hex)
@@ -101,16 +201,13 @@ def generar_word(tipo, contenido, metadatos):
     doc = Document()
     section = doc.sections[0]
     section.top_margin, section.bottom_margin = Inches(0.6), Inches(0.6)
-    section.left_margin, section.right_margin = Inches(0.7), Inches(0.7)
-
-    # Lema
+    
     p_header = doc.add_paragraph()
     p_header.alignment = WD_ALIGN_PARAGRAPH.CENTER
     run_h = p_header.add_run("“AÑO DE LA UNIDAD, LA PAZ Y EL DESARROLLO”")
     run_h.italic = True
     run_h.font.size = Pt(9)
 
-    # Título Principal
     title = doc.add_paragraph()
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
     run_t = title.add_run(tipo.upper())
@@ -118,30 +215,24 @@ def generar_word(tipo, contenido, metadatos):
     run_t.font.size = Pt(14)
     run_t.font.color.rgb = RGBColor(30, 58, 138)
 
-    # I. DATOS INFORMATIVOS
     doc.add_heading("I. DATOS INFORMATIVOS", level=1)
     table_info = doc.add_table(rows=0, cols=2)
     table_info.style = 'Table Grid'
-    
     for key, value in metadatos.items():
         row = table_info.add_row().cells
-        row[0].text = key.upper().replace("_", " ")
-        set_table_header_bg(row[0], "BDE5F2") # Celeste Claro
+        row[0].text = key.upper()
+        set_table_header_bg(row[0], "BDE5F2")
         row[0].paragraphs[0].runs[0].bold = True
         row[1].text = str(value)
 
     doc.add_paragraph()
     doc.add_heading("II. DESARROLLO PEDAGÓGICO", level=1)
 
-    # Procesar Contenido
     lines = contenido.split('\n')
     i = 0
     while i < len(lines):
         line = lines[i].strip()
-        if not line:
-            i += 1
-            continue
-        
+        if not line: i += 1; continue
         if line.startswith('###'):
             doc.add_heading(line.replace('#', '').strip(), level=2)
             i += 1
@@ -150,142 +241,126 @@ def generar_word(tipo, contenido, metadatos):
             i += 2
             word_table = doc.add_table(rows=1, cols=len(headers))
             word_table.style = 'Table Grid'
-            
             for idx, h_text in enumerate(headers):
                 cell = word_table.rows[0].cells[idx]
                 cell.text = h_text
                 set_table_header_bg(cell, "BDE5F2")
-                run = cell.paragraphs[0].runs[0]
-                run.bold = True
-                run.font.size = Pt(9)
-            
+                cell.paragraphs[0].runs[0].bold = True
             while i < len(lines) and lines[i].strip().startswith('|'):
                 data = [d.strip() for d in lines[i].split('|') if d.strip()]
                 if len(data) >= len(headers):
                     row_cells = word_table.add_row().cells
                     for idx, d_text in enumerate(data[:len(headers)]):
                         row_cells[idx].text = d_text
-                        row_cells[idx].paragraphs[0].font.size = Pt(9)
                 i += 1
-            doc.add_paragraph()
         else:
             doc.add_paragraph(line.replace('**', '').replace('*', ''))
             i += 1
-
-    # Firmas
-    doc.add_paragraph("\n\n")
-    sig_table = doc.add_table(rows=1, cols=2)
-    for j in range(2):
-        p = sig_table.cell(0, j).paragraphs[0]
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        text = "__________________________\nDOCENTE DE AULA" if j==0 else "__________________________\nDIRECTOR / V°B°"
-        p.add_run(text + ("\n"+LIDER if j==0 else ""))
 
     buf = io.BytesIO()
     doc.save(buf)
     buf.seek(0)
     return buf
 
-# ── 5. ESTILOS CSS ──
-st.markdown("""
-    <style>
-    .card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; margin-bottom: 20px; }
-    .stButton > button { background: #1e3a8a; color: white; border-radius: 8px; font-weight: bold; width: 100%; height: 3em; }
-    h1, h2, h3 { color: #1e3a8a; }
-    </style>
-""", unsafe_allow_html=True)
+# ── 6. HEADER PRINCIPAL ──
+st.markdown(f"<h1>{NOMBRE_APP}</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; font-family: Rajdhani; color: #64748b;'>Potenciando la labor docente con Inteligencia Artificial Avanzada</p>", unsafe_allow_html=True)
 
-# ── 6. SIDEBAR ──
+# ── 7. SIDEBAR ──
 with st.sidebar:
-    st.header("🏛️ Configuración")
-    ie_nombre = st.text_input("I.E.", "I.E. N° 50273 VIRGEN DEL CARMEN")
-    distrito_sel = st.selectbox("Distrito", DISTRITOS_LA_CONVENCION)
+    st.markdown("### 💠 NÚCLEO DE CONFIGURACIÓN")
+    ie_nombre = st.text_input("NOMBRE I.E.", "I.E. La Convención")
+    distrito_sel = st.selectbox("DISTRITO UBICACIÓN", DISTRITOS_LA_CONVENCION)
     st.divider()
-    nivel_sel = st.radio("Nivel", ["Inicial", "Primaria", "Secundaria"], index=1)
-    
+    nivel_sel = st.radio("NIVEL EDUCATIVO", ["Inicial", "Primaria", "Secundaria"], index=1)
     grados_map = {"Inicial": ["3 años", "4 años", "5 años"], "Primaria": ["1°", "2°", "3°", "4°", "5°", "6°"], "Secundaria": ["1°", "2°", "3°", "4°", "5°"]}
-    grado_sel = st.selectbox("Grado", grados_map[nivel_sel])
-    area_sel = st.selectbox("Área", list(AREAS_CNEB[nivel_sel].keys()))
+    grado_sel = st.selectbox("GRADO / SECCIÓN", grados_map[nivel_sel])
+    area_sel = st.selectbox("ÁREA CURRICULAR", list(AREAS_CNEB[nivel_sel].keys()))
+    st.markdown(f"<div style='margin-top: 50px; text-align: center; opacity: 0.6;'>{LIDER}</div>", unsafe_allow_html=True)
 
-# ── 7. TABS (CON MANEJO SEGURO DE VARIABLES) ──
-tab_anual, tab_unidad, tab_sesion = st.tabs(["📅 P. ANUAL", "📂 UNIDAD", "🚀 SESIÓN"])
+# ── 8. CUERPO INTERACTIVO (TABS) ──
+tab_anual, tab_unidad, tab_sesion = st.tabs(["📅 PROG. ANUAL", "📂 UNIDAD DIDÁCTICA", "🚀 SESIÓN DE CLASE"])
 
-# SECCIÓN: PROGRAMACIÓN ANUAL
+# PESTAÑA 1: ANUAL
 with tab_anual:
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("📋 Planificación Anual")
+    st.subheader("📋 Planificación Curricular de Largo Plazo")
     c1, c2 = st.columns(2)
     with c1:
-        # Se usan variables locales para evitar que el cambio de tab cause KeyError
-        pa_ciclo = st.selectbox("Ciclo", ["II", "III", "IV", "V", "VI", "VII"], key="pa_ciclo_widget")
-        pa_per = st.selectbox("Periodo", ["Bimestral", "Trimestral"], key="pa_per_widget")
+        pa_ciclo = st.selectbox("CICLO EDUCATIVO", ["II", "III", "IV", "V", "VI", "VII"], key="pa_ciclo")
+        pa_per = st.selectbox("ORGANIZACIÓN TEMPORAL", ["Bimestral", "Trimestral"], key="pa_per")
     with c2:
-        pa_trans = st.multiselect("Enfoques", ENFOQUES_TRANSVERSALES, key="pa_trans_widget")
-        pa_metod = st.multiselect("Metodologías", ESTRATEGIAS_METODOLOGICAS, key="pa_metod_widget")
+        pa_trans = st.multiselect("ENFOQUES TRANSVERSALES", ENFOQUES_TRANSVERSALES, key="pa_trans")
+        pa_metod = st.multiselect("METODOLOGÍAS CLAVE", ESTRATEGIAS_METODOLOGICAS, key="pa_metod")
     
-    pa_unidades = st.text_area("Título de Unidades", placeholder="U1: ..., U2: ...", key="pa_unidades_widget")
+    pa_unidades = st.text_area("PROYECCIÓN DE UNIDADES (Títulos y temas clave)", placeholder="Ej: Unidad 1: Nos adaptamos..., Unidad 2: Valoramos la agricultura...", key="pa_units")
 
-    if st.button("🚀 Generar Anual", key="btn_anual_gen"):
+    if st.button("🧬 GENERAR ESTRUCTURA ANUAL", key="btn_anual"):
         if not pa_unidades:
-            st.warning("Ingrese las unidades.")
+            st.warning("Debe ingresar la proyección de unidades.")
         else:
-            with st.spinner("Generando..."):
-                prompt = f"Genera Programación Anual CNEB para {ie_nombre}. Grado: {grado_sel}, Área: {area_sel}. Ciclo: {pa_ciclo}. Organización: {pa_per}. Unidades: {pa_unidades}."
+            with st.spinner("Sincronizando con redes neuronales..."):
+                prompt = f"Genera Programación Anual CNEB para {ie_nombre}. Grado: {grado_sel}, Área: {area_sel}. Ciclo: {pa_ciclo}. Organización: {pa_per}. Unidades: {pa_unidades}. Enfoques: {pa_trans}."
                 if client:
                     res = client.chat.completions.create(model="glm-4-flash", messages=[{"role": "user", "content": prompt}]).choices[0].message.content
+                    st.markdown("### 🖥️ VISTA PREVIA")
                     st.markdown(res)
                     meta = {"IE": ie_nombre, "Grado": grado_sel, "Área": area_sel, "Ciclo": pa_ciclo}
-                    st.download_button("📥 Descargar Word", generar_word("Programación Anual", res, meta), "Plan_Anual.docx")
+                    st.download_button("📥 DESCARGAR DOCUMENTO MAESTRO", generar_word("Programación Anual", res, meta), "Plan_Anual_IA.docx")
     st.markdown('</div>', unsafe_allow_html=True)
 
-# SECCIÓN: UNIDAD
+# PESTAÑA 2: UNIDAD
 with tab_unidad:
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("📂 Unidad de Aprendizaje")
+    st.subheader("📂 Diseño de la Unidad de Aprendizaje")
     u_c1, u_c2 = st.columns(2)
     with u_c1:
-        u_titulo = st.text_input("Título de Unidad", key="u_tit_widget")
-        u_dur = st.text_input("Duración", "4 semanas", key="u_dur_widget")
+        u_titulo = st.text_input("TÍTULO DE LA UNIDAD", key="u_tit")
+        u_dur = st.text_input("DURACIÓN ESTIMADA", "4 semanas", key="u_dur")
     with u_c2:
-        u_prod = st.selectbox("Producto", PRODUCTOS_ESPERADOS, key="u_prod_widget")
-        u_comps = st.multiselect("Competencias", AREAS_CNEB[nivel_sel][area_sel], key="u_comp_widget")
+        u_prod = st.selectbox("PRODUCTO FINAL", PRODUCTOS_ESPERADOS, key="u_prod")
+        u_comps = st.multiselect("COMPETENCIAS PRIORIZADAS", AREAS_CNEB[nivel_sel][area_sel], key="u_comp")
     
-    u_situ = st.text_area("Situación Significativa", key="u_situ_widget")
+    u_situ = st.text_area("SITUACIÓN SIGNIFICATIVA (Contexto y Reto)", key="u_situ")
 
-    if st.button("📂 Generar Unidad", key="btn_unidad_gen"):
+    if st.button("🛸 GENERAR UNIDAD DIDÁCTICA", key="btn_unidad"):
         if not u_titulo:
-            st.error("Ingrese un título.")
+            st.error("El título de la unidad es obligatorio.")
         else:
-            with st.spinner("Diseñando..."):
-                prompt = f"Genera Unidad de Aprendizaje CNEB. Título: {u_titulo}. Situación: {u_situ}. Producto: {u_prod}. Área: {area_sel}."
+            with st.spinner("Procesando arquitectura de unidad..."):
+                prompt = f"Genera Unidad de Aprendizaje CNEB. Título: {u_titulo}. Situación: {u_situ}. Producto: {u_prod}. Competencias: {u_comps}."
                 if client:
                     res = client.chat.completions.create(model="glm-4-flash", messages=[{"role": "user", "content": prompt}]).choices[0].message.content
+                    st.markdown("### 🖥️ VISTA PREVIA")
                     st.markdown(res)
-                    meta = {"IE": ie_nombre, "Unidad": u_titulo, "Grado": grado_sel}
-                    st.download_button("📥 Descargar Word", generar_word("Unidad de Aprendizaje", res, meta), "Unidad.docx")
+                    meta = {"IE": ie_nombre, "Unidad": u_titulo, "Producto": u_prod}
+                    st.download_button("📥 DESCARGAR UNIDAD (WORD)", generar_word("Unidad de Aprendizaje", res, meta), "Unidad_IA.docx")
     st.markdown('</div>', unsafe_allow_html=True)
 
-# SECCIÓN: SESIÓN
+# PESTAÑA 3: SESIÓN
 with tab_sesion:
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("🚀 Sesión de Aprendizaje")
+    st.subheader("🚀 Arquitectura de la Sesión de Clase")
     s_c1, s_c2 = st.columns(2)
     with s_c1:
-        s_titulo = st.text_input("Título de Sesión", key="s_tit_widget")
-        s_dur = st.selectbox("Duración", [45, 90, 135], index=1, key="s_dur_widget")
+        s_titulo = st.text_input("TÍTULO DE LA SESIÓN", key="s_tit")
+        s_dur = st.selectbox("TIEMPO (MINUTOS)", [45, 90, 135], index=1, key="s_dur")
     with s_c2:
-        s_comp = st.selectbox("Competencia", AREAS_CNEB[nivel_sel][area_sel], key="s_comp_widget")
-        s_des = st.text_area("Criterio/Desempeño", key="s_des_widget")
+        s_comp = st.selectbox("COMPETENCIA CENTRAL", AREAS_CNEB[nivel_sel][area_sel], key="s_comp")
+        s_met = st.selectbox("METODOLOGÍA DE SESIÓN", ESTRATEGIAS_METODOLOGICAS, key="s_met")
+    
+    s_des = st.text_area("DESEMPEÑO O CRITERIO ESPECÍFICO", key="s_des")
 
-    if st.button("✨ Generar Sesión", key="btn_sesion_gen"):
+    if st.button("⚡ GENERAR SESIÓN DE APRENDIZAJE", key="btn_sesion"):
         if not s_titulo:
-            st.warning("Ingrese título.")
+            st.warning("Defina un título para la sesión.")
         else:
-            with st.spinner("Redactando..."):
-                prompt = f"Genera Sesión CNEB. Título: {s_titulo}. Competencia: {s_comp}. Desempeño: {s_des}."
+            with st.spinner("Materializando procesos pedagógicos..."):
+                prompt = f"Genera Sesión CNEB detallada. Título: {s_titulo}. Competencia: {s_comp}. Desempeño: {s_des}. Estructura: Inicio (Motivación, saberes, propósito), Desarrollo (Gestión y acompañamiento), Cierre (Meta-cognición)."
                 if client:
                     res = client.chat.completions.create(model="glm-4-flash", messages=[{"role": "user", "content": prompt}]).choices[0].message.content
+                    st.markdown("### 🖥️ VISTA PREVIA")
                     st.markdown(res)
-                    meta = {"IE": ie_nombre, "Sesión": s_titulo, "Área": area_sel}
-                    st.download_button("📥 Descargar Word", generar_word("Sesión de Aprendizaje", res, meta), "Sesion.docx")
+                    meta = {"IE": ie_nombre, "Sesión": s_titulo, "Competencia": s_comp}
+                    st.download_button("📥 DESCARGAR SESIÓN (WORD)", generar_word("Sesión de Aprendizaje", res, meta), "Sesion_IA.docx")
     st.markdown('</div>', unsafe_allow_html=True)
