@@ -132,7 +132,7 @@ def generar_word(tipo, contenido, metadatos):
     doc.add_paragraph()
     doc.add_heading("II. DESARROLLO DE LA PLANIFICACIÓN", level=2)
 
-    # Procesar Contenido (Conversión de Tablas Markdown a Word)
+    # Procesar Contenido
     lines = contenido.split('\n')
     i = 0
     while i < len(lines):
@@ -141,22 +141,18 @@ def generar_word(tipo, contenido, metadatos):
             i += 1
             continue
         
-        # Títulos
         if line.startswith('###'):
             doc.add_heading(line.replace('#', '').strip(), level=3)
             i += 1
-        # Detección de Tablas Markdown
         elif line.startswith('|') and i+1 < len(lines) and '-' in lines[i+1]:
             headers = [h.strip() for h in line.split('|') if h.strip()]
             i += 2
             word_table = doc.add_table(rows=1, cols=len(headers))
             word_table.style = 'Table Grid'
-            # Header row
             for idx, h_text in enumerate(headers):
                 word_table.rows[0].cells[idx].text = h_text
                 word_table.rows[0].cells[idx].paragraphs[0].runs[0].bold = True
             
-            # Data rows
             while i < len(lines) and lines[i].strip().startswith('|'):
                 data = [d.strip() for d in lines[i].split('|') if d.strip()]
                 if len(data) >= len(headers):
@@ -196,12 +192,12 @@ st.markdown("""
 
 # ── 6. INTERFAZ Y SIDEBAR ──
 st.title("🏛️ EDUPLAN IA - LA CONVENCIÓN")
-st.caption("Planificación Curricular con Formato CNEB Perú - 2026")
+st.caption("Planificación Curricular con Formato Oficial CNEB Perú - 2026")
 
 with st.sidebar:
-    st.header("Datos del Plantel")
-    ie_nombre = st.text_input("I.E.", "I.E. La Convención")
-    distrito_sel = st.selectbox("Distrito", DISTRITOS_LA_CONVENCION)
+    st.header("Datos Generales")
+    ie_nombre = st.text_input("Institución Educativa", "I.E. La Convención")
+    distrito_sel = st.selectbox("Distrito / Ubicación", DISTRITOS_LA_CONVENCION)
     st.divider()
     nivel_sel = st.radio("Nivel Educativo", ["Inicial", "Primaria", "Secundaria"], index=1)
     
@@ -214,84 +210,89 @@ with st.sidebar:
     st.divider()
     st.info(f"Docente: {LIDER}")
 
-# ── 7. CUERPO PRINCIPAL (TABS) ──
-tab_anual, tab_unidad, tab_sesion = st.tabs(["📅 PROGRAMACIÓN ANUAL", "📂 UNIDAD", "🚀 SESIÓN"])
+# ── 7. TABS ──
+tab_anual, tab_unidad, tab_sesion = st.tabs(["📅 PROG. ANUAL", "📂 UNIDAD DIDÁCTICA", "🚀 SESIÓN"])
 
 with tab_anual:
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("Configuración Técnica de la Programación Anual")
-    
+    st.subheader("Configuración de la Programación Anual")
     col1, col2 = st.columns(2)
     with col1:
-        p_periodo = st.selectbox("Periodo Académico", ["Trimestral", "Bimestral", "Anual"])
-        p_contexto = st.selectbox("Situación de Contexto", SITUACIONES_CONTEXTO)
-        p_competencias = st.multiselect("Competencias Priorizadas", AREAS_CNEB[nivel_sel][area_sel])
+        pa_periodo = st.selectbox("Periodo", ["Trimestral", "Bimestral", "Anual"], key="pa_periodo")
+        pa_contexto = st.selectbox("Situación de Contexto", SITUACIONES_CONTEXTO, key="pa_contexto")
     with col2:
-        p_enfoques = st.multiselect("Enfoques Transversales", ENFOQUES_TRANSVERSALES)
-        p_estandar = st.text_area("Estándares de Aprendizaje (Ciclo)", placeholder="Describa el nivel esperado...")
-        p_evidencias = st.text_input("Evidencias de Aprendizaje Eje", "Portafolios, Proyectos, Feria...")
-
-    col3, col4 = st.columns(2)
-    with col3:
-        p_hitos = st.text_area("Calendario de Hitos", "Ej. Abril: Día del Café, Julio: Aniversario Provincia...")
-    with col4:
-        p_adapt = st.text_area("Adaptaciones / Diversificación", "Atención a NEE, Lengua Originaria, etc.")
-
-    if st.button("🚀 Generar Programación Anual Completa"):
-        if not p_competencias:
-            st.warning("Debe seleccionar al menos una competencia.")
-        else:
-            with st.spinner("Generando plan técnico..."):
-                prompt = f"""
-                Genera una Programación Anual para {ie_nombre} en {distrito_sel}.
-                Nivel: {nivel_sel}, Grado: {grado_sel}, Área: {area_sel}.
-                Periodo: {p_periodo}. Contexto: {p_contexto}. 
-                Competencias: {p_competencias}.
-                Enfoques: {p_enfoques}.
-                Estándar: {p_estandar}.
-                Evidencias: {p_evidencias}.
-                Hitos: {p_hitos}.
-                Adaptaciones: {p_adapt}.
-                Organiza la información en una tabla de unidades y explica los desempeños por unidad.
-                """
-                if client:
-                    res = client.chat.completions.create(model="glm-4-flash", messages=[{"role": "user", "content": prompt}]).choices[0].message.content
-                    st.markdown(res)
-                    meta = {
-                        "Institución": ie_nombre, "Distrito": distrito_sel, "Área": area_sel,
-                        "Nivel_Grado": f"{nivel_sel} - {grado_sel}", "Periodo": p_periodo,
-                        "Contexto": p_contexto, "Docente": LIDER
-                    }
-                    f = generar_word("Programación Anual", res, meta)
-                    st.download_button("📥 Descargar Plan Anual (Word)", f, "Programacion_Anual.docx")
+        pa_comp = st.multiselect("Competencias Priorizadas", AREAS_CNEB[nivel_sel][area_sel], key="pa_comp")
+        pa_enfoques = st.multiselect("Enfoques Transversales", ENFOQUES_TRANSVERSALES, key="pa_enfoque")
+    
+    if st.button("🚀 Generar Plan Anual"):
+        with st.spinner("Generando..."):
+            prompt = f"Genera Programación Anual. IE: {ie_nombre}, Distrito: {distrito_sel}, Grado: {grado_sel}, Área: {area_sel}. Contexto: {pa_contexto}. Competencias: {pa_comp}."
+            if client:
+                res = client.chat.completions.create(model="glm-4-flash", messages=[{"role": "user", "content": prompt}]).choices[0].message.content
+                st.markdown(res)
+                f = generar_word("Programación Anual", res, {"IE": ie_nombre, "Área": area_sel, "Grado": grado_sel})
+                st.download_button("📥 Descargar Word", f, "Prog_Anual.docx")
     st.markdown('</div>', unsafe_allow_html=True)
 
 with tab_unidad:
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("Diseño de Unidad de Aprendizaje")
-    u_tit = st.text_input("Título de la Unidad")
-    u_dur = st.text_input("Duración", "4 semanas")
-    if st.button("🎨 Generar Unidad"):
-        with st.spinner("Trabajando..."):
-            prompt = f"Unidad: {u_tit}. Nivel: {nivel_sel}, Grado: {grado_sel}, Área: {area_sel}, Distrito: {distrito_sel}. Incluye situación significativa y cuadro de sesiones."
+    st.subheader("Configuración de la Unidad Didáctica (CNEB)")
+    
+    u_col1, u_col2 = st.columns(2)
+    with u_col1:
+        u_titulo = st.text_input("Título de la Unidad", placeholder="Ej. Valoramos la cosecha del cacao")
+        u_duracion = st.text_input("Duración", "4 semanas (10 sesiones)")
+        u_comp = st.multiselect("Competencias de la Unidad", AREAS_CNEB[nivel_sel][area_sel], key="u_comp")
+    with u_col2:
+        u_sit = st.text_area("Situación Significativa", placeholder="Descripción del problema o reto local...")
+        u_evidencia = st.text_input("Evidencias de Aprendizaje", "Prototipo, Álbum, Informe...")
+    
+    st.divider()
+    u_col3, u_col4 = st.columns(2)
+    with u_col3:
+        u_desempenos = st.text_area("Desempeños Esperados", placeholder="Indicadores concretos de logro...")
+        u_recursos = st.text_input("Recursos y Materiales", "Libros MED, Fichas, Tabletas, Material local...")
+    with u_col4:
+        u_eval = st.selectbox("Estrategias de Evaluación", ["Rúbricas", "Listas de Cotejo", "Portafolio", "Pruebas escritas"])
+        u_adapt = st.text_input("Adaptaciones / Diversificación", "Ajustes para NEE o realidad local")
+
+    if st.button("📂 Generar Unidad Didáctica"):
+        with st.spinner("Diseñando Unidad Didáctica..."):
+            prompt = f"""
+            Genera una UNIDAD DIDÁCTICA completa siguiendo este formato:
+            - Título: {u_titulo}
+            - Duración: {u_duracion}
+            - Área: {area_sel}, Grado: {grado_sel}
+            - Competencias y Capacidades: {u_comp}
+            - Desempeños: {u_desempenos}
+            - Situación Significativa: {u_sit}
+            - Evaluación: {u_eval} con Evidencias: {u_evidencia}
+            - Secuencia de Sesiones: Genera una tabla con 8 sesiones (Número, Título breve, Descripción).
+            - Recursos: {u_recursos}
+            - Adaptaciones: {u_adapt}
+            Contexto: Provincia de La Convención, {distrito_sel}.
+            """
             if client:
                 res = client.chat.completions.create(model="glm-4-flash", messages=[{"role": "user", "content": prompt}]).choices[0].message.content
                 st.markdown(res)
-                f = generar_word("Unidad de Aprendizaje", res, {"IE": ie_nombre, "Unidad": u_tit, "Area": area_sel})
-                st.download_button("📥 Descargar Unidad", f, "Unidad.docx")
+                meta_u = {
+                    "IE": ie_nombre, "Unidad": u_titulo, "Área": area_sel, 
+                    "Grado": grado_sel, "Duración": u_duracion, "Distrito": distrito_sel
+                }
+                f = generar_word("Unidad Didáctica", res, meta_u)
+                st.download_button("📥 Descargar Unidad Didáctica (Word)", f, f"Unidad_{u_titulo}.docx")
     st.markdown('</div>', unsafe_allow_html=True)
 
 with tab_sesion:
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("Sesión de Aprendizaje Detallada")
-    s_tit = st.text_input("Nombre de la Sesión")
-    s_mom = st.multiselect("Momentos a incluir", ["Inicio", "Desarrollo", "Cierre"], default=["Inicio", "Desarrollo", "Cierre"])
+    st.subheader("Sesión de Aprendizaje")
+    s_titulo = st.text_input("Título de la Sesión", key="s_tit")
     if st.button("✨ Generar Sesión"):
-        with st.spinner("Generando pasos didácticos..."):
-            prompt = f"Sesión: {s_tit}. Área: {area_sel}, Grado: {grado_sel}, Distrito: {distrito_sel}. Crea una tabla detallada con procesos pedagógicos y didácticos."
+        with st.spinner("Generando..."):
+            prompt = f"Genera Sesión de Aprendizaje. Título: {s_titulo}. Nivel: {nivel_sel}, Grado: {grado_sel}, Área: {area_sel}. Incluye momentos (Inicio, Desarrollo, Cierre)."
             if client:
                 res = client.chat.completions.create(model="glm-4-flash", messages=[{"role": "user", "content": prompt}]).choices[0].message.content
                 st.markdown(res)
-                f = generar_word("Sesión de Aprendizaje", res, {"IE": ie_nombre, "Sesión": s_tit, "Área": area_sel})
+                f = generar_word("Sesión de Aprendizaje", res, {"IE": ie_nombre, "Sesión": s_titulo})
                 st.download_button("📥 Descargar Sesión", f, "Sesion.docx")
     st.markdown('</div>', unsafe_allow_html=True)
