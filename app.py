@@ -198,7 +198,7 @@ st.markdown("""
 # ── 6. SIDEBAR ──
 with st.sidebar:
     st.header("🏛️ Configuración")
-    ie_nombre = st.text_input("I.E.", "I.E. La Convención")
+    ie_nombre = st.text_input("I.E.", "I.E. N° 50273 VIRGEN DEL CARMEN")
     distrito_sel = st.selectbox("Distrito", DISTRITOS_LA_CONVENCION)
     st.divider()
     nivel_sel = st.radio("Nivel", ["Inicial", "Primaria", "Secundaria"], index=1)
