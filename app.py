@@ -78,6 +78,19 @@ SITUACIONES_CONTEXTO = [
     "Conservación de suelos y medio ambiente"
 ]
 
+# --- ADICIÓN DE DATOS PEDAGÓGICOS ---
+ESTRATEGIAS_METODOLOGICAS = [
+    "Aprendizaje Basado en Proyectos (ABP)", "Aprendizaje Basado en Problemas", 
+    "Aula Invertida (Flipped Classroom)", "Gamificación", 
+    "Aprendizaje Cooperativo", "Pensamiento de Diseño (Design Thinking)"
+]
+
+PRODUCTOS_ESPERADOS = [
+    "Portafolio de evidencias", "Prototipo tecnológico", "Ensayo argumentativo",
+    "Infografía de síntesis", "Maqueta o modelo", "Podcast educativo",
+    "Campaña de sensibilización", "Informe de indagación"
+]
+
 # ── 3. CLIENTE IA ──
 @st.cache_resource
 def get_client():
@@ -91,26 +104,22 @@ client = get_client()
 def generar_word(tipo, contenido, metadatos):
     doc = Document()
     
-    # Márgenes de impresión
     section = doc.sections[0]
     section.top_margin = Inches(0.5)
     section.bottom_margin = Inches(0.5)
     section.left_margin = Inches(0.6)
     section.right_margin = Inches(0.6)
 
-    # Estilos
     style = doc.styles['Normal']
     style.font.name = 'Arial'
     style.font.size = Pt(10)
 
-    # Encabezado
     p_header = doc.add_paragraph()
     p_header.alignment = WD_ALIGN_PARAGRAPH.CENTER
     run_h = p_header.add_run("“AÑO DE LA UNIDAD, LA PAZ Y EL DESARROLLO”")
     run_h.italic = True
     run_h.font.size = Pt(9)
 
-    # Título Principal
     title = doc.add_paragraph()
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
     run_t = title.add_run(tipo.upper())
@@ -118,7 +127,6 @@ def generar_word(tipo, contenido, metadatos):
     run_t.font.size = Pt(14)
     run_t.font.color.rgb = RGBColor(0, 51, 153)
 
-    # I. Datos Informativos
     doc.add_heading("I. DATOS INFORMATIVOS", level=2)
     table_info = doc.add_table(rows=0, cols=2)
     table_info.style = 'Table Grid'
@@ -132,7 +140,6 @@ def generar_word(tipo, contenido, metadatos):
     doc.add_paragraph()
     doc.add_heading("II. DESARROLLO DE LA PLANIFICACIÓN", level=2)
 
-    # Procesar Contenido
     lines = contenido.split('\n')
     i = 0
     while i < len(lines):
@@ -165,7 +172,6 @@ def generar_word(tipo, contenido, metadatos):
             doc.add_paragraph(line.replace('**', '').replace('*', ''))
             i += 1
 
-    # Firmas
     doc.add_paragraph("\n\n")
     sig_table = doc.add_table(rows=1, cols=2)
     c1 = sig_table.cell(0, 0).paragraphs[0]
@@ -210,89 +216,124 @@ with st.sidebar:
     st.divider()
     st.info(f"Docente: {LIDER}")
 
-# ── 7. TABS ──
+# ── 7. TABS ACTUALIZADOS ──
 tab_anual, tab_unidad, tab_sesion = st.tabs(["📅 PROG. ANUAL", "📂 UNIDAD DIDÁCTICA", "🚀 SESIÓN"])
 
+# --- SECCIÓN 1: PROGRAMACIÓN ANUAL ---
 with tab_anual:
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("Configuración de la Programación Anual")
+    st.subheader("📋 Planificación Curricular Anual")
+    
     col1, col2 = st.columns(2)
     with col1:
-        pa_periodo = st.selectbox("Periodo", ["Trimestral", "Bimestral", "Anual"], key="pa_periodo")
-        pa_contexto = st.selectbox("Situación de Contexto", SITUACIONES_CONTEXTO, key="pa_contexto")
-    with col2:
-        pa_comp = st.multiselect("Competencias Priorizadas", AREAS_CNEB[nivel_sel][area_sel], key="pa_comp")
-        pa_enfoques = st.multiselect("Enfoques Transversales", ENFOQUES_TRANSVERSALES, key="pa_enfoque")
+        pa_ciclo = st.selectbox("Ciclo", ["II", "III", "IV", "V", "VI", "VII"], help="Seleccione según el grado")
+        pa_periodo = st.selectbox("Organización del Tiempo", ["Bimestral", "Trimestral"], key="pa_per")
+        pa_horas = st.number_input("Horas Semanales", min_value=1, max_value=10, value=4)
     
-    if st.button("🚀 Generar Plan Anual"):
-        with st.spinner("Generando..."):
-            prompt = f"Genera Programación Anual. IE: {ie_nombre}, Distrito: {distrito_sel}, Grado: {grado_sel}, Área: {area_sel}. Contexto: {pa_contexto}. Competencias: {pa_comp}."
+    with col2:
+        pa_comp = st.multiselect("Competencias del Área (Selección)", AREAS_CNEB[nivel_sel][area_sel])
+        pa_trans = st.multiselect("Enfoques Transversales", ENFOQUES_TRANSVERSALES)
+        pa_metod = st.multiselect("Estrategias Metodológicas", ESTRATEGIAS_METODOLOGICAS)
+
+    st.write("**Distribución Temporal (Proyección de Unidades)**")
+    num_unidades = 8 if pa_periodo == "Bimestral" else 9
+    pa_unidades = st.text_area(f"Títulos tentativos para las {num_unidades} unidades", 
+                               placeholder="Unidad 1: Título...\nUnidad 2: Título...")
+
+    if st.button("🚀 Generar Programación Anual Completa"):
+        with st.spinner("Procesando estructura CNEB..."):
+            prompt_anual = f"""
+            Actúa como experto pedagogo del Ministerio de Educación de Perú. 
+            Genera una PROGRAMACIÓN ANUAL para:
+            - IE: {ie_nombre}, Distrito: {distrito_sel}, Nivel: {nivel_sel}, Grado: {grado_sel}, Ciclo: {pa_ciclo}.
+            - Área: {area_sel}, Horas: {pa_horas}, Organización: {pa_periodo}.
+            
+            CAMPOS OBLIGATORIOS A GENERAR:
+            1. Propósito de Aprendizaje: Tabla detallada con Competencias, Capacidades y Criterios de Evaluación.
+            2. Organización de Unidades: Distribución temporal basada en {pa_unidades}.
+            3. Temas Transversales y Enfoques: {pa_trans}.
+            4. Estrategias Metodológicas: {pa_metod}.
+            5. Materiales y Recursos Educativos (considerando el contexto de La Convención).
+            6. Evaluación: Tipos (Diagnóstica, Formativa, Sumativa).
+            """
             if client:
-                res = client.chat.completions.create(model="glm-4-flash", messages=[{"role": "user", "content": prompt}]).choices[0].message.content
+                res = client.chat.completions.create(model="glm-4-flash", messages=[{"role": "user", "content": prompt_anual}]).choices[0].message.content
                 st.markdown(res)
-                f = generar_word("Programación Anual", res, {"IE": ie_nombre, "Área": area_sel, "Grado": grado_sel})
+                f = generar_word("Programación Anual", res, {"IE": ie_nombre, "Área": area_sel, "Grado": grado_sel, "Ciclo": pa_ciclo})
                 st.download_button("📥 Descargar Word", f, "Prog_Anual.docx")
     st.markdown('</div>', unsafe_allow_html=True)
 
+# --- SECCIÓN 2: UNIDAD DIDÁCTICA ---
 with tab_unidad:
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("Configuración de la Unidad Didáctica (CNEB)")
+    st.subheader("📂 Carpeta de Unidad de Aprendizaje")
     
     u_col1, u_col2 = st.columns(2)
     with u_col1:
-        u_titulo = st.text_input("Título de la Unidad", placeholder="Ej. Valoramos la cosecha del cacao")
-        u_duracion = st.text_input("Duración", "4 semanas (10 sesiones)")
-        u_comp = st.multiselect("Competencias de la Unidad", AREAS_CNEB[nivel_sel][area_sel], key="u_comp")
+        u_titulo = st.text_input("Título de la Unidad (Retador)", placeholder="Ej. Promovemos el consumo de café...")
+        u_duracion = st.text_input("Duración", "4 semanas / 12 sesiones")
+        u_producto = st.selectbox("Producto Principal", PRODUCTOS_ESPERADOS)
+        
     with u_col2:
-        u_sit = st.text_area("Situación Significativa", placeholder="Descripción del problema o reto local...")
-        u_evidencia = st.text_input("Evidencias de Aprendizaje", "Prototipo, Álbum, Informe...")
-    
-    st.divider()
-    u_col3, u_col4 = st.columns(2)
-    with u_col3:
-        u_desempenos = st.text_area("Desempeños Esperados", placeholder="Indicadores concretos de logro...")
-        u_recursos = st.text_input("Recursos y Materiales", "Libros MED, Fichas, Tabletas, Material local...")
-    with u_col4:
-        u_eval = st.selectbox("Estrategias de Evaluación", ["Rúbricas", "Listas de Cotejo", "Portafolio", "Pruebas escritas"])
-        u_adapt = st.text_input("Adaptaciones / Diversificación", "Ajustes para NEE o realidad local")
+        u_sit = st.text_area("Situación Significativa", placeholder="Redactar el contexto, reto y pregunta desafiante...")
+        u_comp = st.multiselect("Competencias a Evaluar", AREAS_CNEB[nivel_sel][area_sel], key="u_comp_sel")
 
-    if st.button("📂 Generar Unidad Didáctica"):
+    st.write("**Secuencia de Sesiones**")
+    u_lista_sesiones = st.text_area("Lista de títulos de sesiones (una por línea)", "Sesión 1: ...\nSesión 2: ...")
+
+    if st.button("📂 Generar Unidad Completa"):
         with st.spinner("Diseñando Unidad Didáctica..."):
-            prompt = f"""
-            Genera una UNIDAD DIDÁCTICA completa siguiendo este formato:
-            - Título: {u_titulo}
-            - Duración: {u_duracion}
-            - Área: {area_sel}, Grado: {grado_sel}
-            - Competencias y Capacidades: {u_comp}
-            - Desempeños: {u_desempenos}
+            prompt_unidad = f"""
+            Genera una UNIDAD DE APRENDIZAJE completa siguiendo la normativa CNEB:
+            - Título: {u_titulo} | Grado/Área: {grado_sel} - {area_sel}
             - Situación Significativa: {u_sit}
-            - Evaluación: {u_eval} con Evidencias: {u_evidencia}
-            - Secuencia de Sesiones: Genera una tabla con 8 sesiones (Número, Título breve, Descripción).
-            - Recursos: {u_recursos}
-            - Adaptaciones: {u_adapt}
-            Contexto: Provincia de La Convención, {distrito_sel}.
+            - Competencias y Capacidades: {u_comp}
+            - Producto: {u_producto}
+            - Secuencia de Sesiones: Desarrolla una tabla con Número, Título y Descripción breve para: {u_lista_sesiones}
+            - Evaluación: Criterios e instrumentos (Rúbricas/Cotejo).
+            Contexto: Provincia de La Convención.
             """
             if client:
-                res = client.chat.completions.create(model="glm-4-flash", messages=[{"role": "user", "content": prompt}]).choices[0].message.content
+                res = client.chat.completions.create(model="glm-4-flash", messages=[{"role": "user", "content": prompt_unidad}]).choices[0].message.content
                 st.markdown(res)
-                meta_u = {
-                    "IE": ie_nombre, "Unidad": u_titulo, "Área": area_sel, 
-                    "Grado": grado_sel, "Duración": u_duracion, "Distrito": distrito_sel
-                }
+                meta_u = {"IE": ie_nombre, "Unidad": u_titulo, "Área": area_sel, "Grado": grado_sel, "Duración": u_duracion}
                 f = generar_word("Unidad Didáctica", res, meta_u)
-                st.download_button("📥 Descargar Unidad Didáctica (Word)", f, f"Unidad_{u_titulo}.docx")
+                st.download_button("📥 Descargar Unidad (Word)", f, f"Unidad_{u_titulo}.docx")
     st.markdown('</div>', unsafe_allow_html=True)
 
+# --- SECCIÓN 3: SESIÓN DE APRENDIZAJE ---
 with tab_sesion:
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("Sesión de Aprendizaje")
-    s_titulo = st.text_input("Título de la Sesión", key="s_tit")
-    if st.button("✨ Generar Sesión"):
-        with st.spinner("Generando..."):
-            prompt = f"Genera Sesión de Aprendizaje. Título: {s_titulo}. Nivel: {nivel_sel}, Grado: {grado_sel}, Área: {area_sel}. Incluye momentos (Inicio, Desarrollo, Cierre)."
+    st.subheader("🚀 Sesión de Aprendizaje Detallada")
+    
+    s_col1, s_col2 = st.columns(2)
+    with s_col1:
+        s_titulo = st.text_input("Título de la Sesión", placeholder="Ej. Leemos un texto sobre el cacao")
+        s_duracion = st.selectbox("Duración (minutos)", [45, 90, 135])
+        s_fecha = st.date_input("Fecha de ejecución")
+    
+    with s_col2:
+        s_comp = st.selectbox("Competencia Principal", AREAS_CNEB[nivel_sel][area_sel])
+        s_metodo = st.selectbox("Enfoque Metodológico", ESTRATEGIAS_METODOLOGICAS)
+
+    s_desempeno = st.text_area("Desempeño o Criterio de Evaluación", placeholder="¿Qué debe lograr el estudiante?")
+
+    if st.button("✨ Generar Sesión Paso a Paso"):
+        with st.spinner("Escribiendo procesos pedagógicos..."):
+            prompt_sesion = f"""
+            Genera una SESIÓN DE APRENDIZAJE detallada bajo el CNEB:
+            - Título: {s_titulo} | Área: {area_sel} | Grado: {grado_sel} | Duración: {s_duracion}min
+            - Competencia: {s_comp} | Desempeño: {s_desempeno} | Estrategia: {s_metodo}
+            - Estructura obligatoria:
+                1. INICIO: Motivación, saberes previos, conflicto cognitivo y propósito (15% tiempo).
+                2. DESARROLLO: Procesos didácticos según el área, actividades específicas y retroalimentación (70% tiempo).
+                3. CIERRE: Metacognición y evaluación formativa (15% tiempo).
+            - Materiales: Recursos locales de La Convención.
+            - Evaluación: Tabla con Criterio, Indicador e Instrumento.
+            """
             if client:
-                res = client.chat.completions.create(model="glm-4-flash", messages=[{"role": "user", "content": prompt}]).choices[0].message.content
+                res = client.chat.completions.create(model="glm-4-flash", messages=[{"role": "user", "content": prompt_sesion}]).choices[0].message.content
                 st.markdown(res)
-                f = generar_word("Sesión de Aprendizaje", res, {"IE": ie_nombre, "Sesión": s_titulo})
-                st.download_button("📥 Descargar Sesión", f, "Sesion.docx")
+                f = generar_word("Sesión de Aprendizaje", res, {"IE": ie_nombre, "Sesión": s_titulo, "Fecha": s_fecha})
+                st.download_button("📥 Descargar Sesión (Word)", f, "Sesion_Aprendizaje.docx")
     st.markdown('</div>', unsafe_allow_html=True)
