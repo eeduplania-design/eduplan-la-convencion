@@ -6,10 +6,12 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 import io
 import re
 import datetime
+import base64
+import os
 
 # --- CONFIGURACIÓN DE IDENTIDAD Y DATOS MAESTROS ---
 NOMBRE_APP = "EDUPLAN IA - LA CONVENCIÓN"
-LIDER = "Prof. Percy Tapia"
+LIDER = "PIP Prof. Percy Tapia A"
 ANIO_ACTUAL = datetime.datetime.now().year
 
 DISTRICTS = [
@@ -36,7 +38,6 @@ CONTEXTOS_LOCALES = [
 ]
 
 # --- DICCIONARIOS MINEDU: ENFOQUES Y PROCESOS DIDÁCTICOS ---
-# Esto es vital para cumplir con la rúbrica de evaluación docente en Perú.
 ENFOQUES_AREAS = {
     "Matemática": "Resolución de problemas",
     "Comunicación": "Comunicativo (Textual e intertextual)",
@@ -80,9 +81,6 @@ except Exception:
 
 # --- MOTOR DE PROMPTS CNEB (CEREBRO PEDAGÓGICO) ---
 def obtener_prompt_cneb(tipo_doc, area, nivel):
-    """Genera instrucciones hiper-específicas basadas en el CNEB y los procesos del área."""
-    
-    # Obtener el enfoque y procesos didácticos exactos para inyectarlos a la IA
     enfoque_area = ENFOQUES_AREAS.get(area, "Enfoque por competencias")
     procesos_area = PROCESOS_DIDACTICOS.get(area, "1. Inicio, 2. Desarrollo, 3. Cierre")
 
@@ -213,6 +211,17 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# --- FUNCIÓN PARA CARGAR LOGO LOCAL EN BASE64 ---
+def get_image_base64(image_path):
+    """Convierte la imagen local a Base64 para inyectarla en el HTML."""
+    try:
+        with open(image_path, "rb") as img_file:
+            encoded_string = base64.b64encode(img_file.read()).decode()
+        return f"data:image/jpeg;base64,{encoded_string}"
+    except FileNotFoundError:
+        # Fallback en caso no exista el archivo logo.jpg
+        return "https://cdn-icons-png.flaticon.com/512/8066/8066104.png"
+
 # --- INICIALIZACIÓN DE ESTADO ---
 if 'resultados' not in st.session_state:
     st.session_state.resultados = {"anual": None, "unidad": None, "sesion": None}
@@ -314,8 +323,11 @@ def procesar_ia(payload, prompt_sistema):
 
 # --- INTERFAZ PRINCIPAL ---
 
+logo_url = get_image_base64("logo.jpg")
+
 st.markdown(f"""
     <div class="header-box">
+        <img src="{logo_url}" width="130" style="margin-bottom: 15px; border-radius: 50%; box-shadow: 0px 6px 15px rgba(0,0,0,0.4); border: 3px solid white;">
         <h1>{NOMBRE_APP}</h1>
         <p>Generación Automática de Documentos CNEB {ANIO_ACTUAL} con IA</p>
     </div>
