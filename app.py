@@ -60,12 +60,12 @@ ENFOQUES_AREAS = {
 }
 
 PROCESOS_DIDACTICOS = {
-    "Matemática": "1. Comprensión del problema. 2. Estrategias. 3. Representación (concreto → simbólico). 4. Formalización. 5. Reflexión y transferencia.",
-    "Comunicación": "1. Aproximación al texto / Contextualización. 2. Comprensión y producción (antes, durante, después). 3. Reflexión y revisión.",
-    "Personal Social": "1. Problematización. 2. Análisis de información. 3. Acuerdos / toma de decisiones.",
-    "Ciencias Sociales": "1. Problematización. 2. Análisis de información. 3. Acuerdos / toma de decisiones.",
-    "DPCC": "1. Problematización. 2. Análisis de información. 3. Acuerdos / toma de decisiones.",
-    "Ciencia y Tecnología": "1. Problematización. 2. Diseño de estrategias. 3. Registro de datos. 4. Análisis. 5. Evaluación y comunicación.",
+    "Matemática": "1. Comprensión del problema. 2. Búsqueda de estrategias. 3. Representación (concreto → simbólico). 4. Formalización. 5. Reflexión y transferencia.",
+    "Comunicación": "1. Antes de la lectura/texto. 2. Durante la lectura/producción. 3. Después de la lectura/revisión.",
+    "Personal Social": "1. Problematización. 2. Análisis de información. 3. Acuerdos / Toma de decisiones.",
+    "Ciencias Sociales": "1. Problematización. 2. Análisis de información. 3. Acuerdos / Toma de decisiones.",
+    "DPCC": "1. Problematización. 2. Análisis de información. 3. Acuerdos / Toma de decisiones.",
+    "Ciencia y Tecnología": "1. Planteamiento del problema. 2. Planteamiento de hipótesis. 3. Elaboración del plan de acción. 4. Recojo de datos y análisis de resultados. 5. Estructuración del saber construido. 6. Evaluación y comunicación.",
     "Educación Física": "1. Motivación, exploración y calentamiento. 2. Desarrollo de la actividad central. 3. Vuelta a la calma y relajación.",
     "Arte y Cultura": "1. Desafío/Reto. 2. Exploración y experimentación. 3. Producción preliminar. 4. Revisión y afinamiento. 5. Presentación y reflexión.",
     "Educación Religiosa": "1. Ver. 2. Juzgar. 3. Actuar. 4. Revisar. 5. Celebrar.",
@@ -88,7 +88,7 @@ try:
 except Exception:
     client = None
 
-# --- MOTOR DE PROMPTS CNEB (CEREBRO PEDAGÓGICO ACTUALIZADO) ---
+# --- MOTOR DE PROMPTS CNEB (CEREBRO PEDAGÓGICO ACTUALIZADO BADO EN MODELO) ---
 def obtener_prompt_cneb(tipo_doc, area, nivel):
     enfoque_area = ENFOQUES_AREAS.get(area, "Enfoque por competencias")
     procesos_area = PROCESOS_DIDACTICOS.get(area, "1. Inicio, 2. Desarrollo, 3. Cierre")
@@ -107,7 +107,7 @@ DATOS CLAVE DEL CNEB PARA ESTA ÁREA QUE DEBES APLICAR ESTRICTAMENTE:
 - Procesos Didácticos del Área: {procesos_area}
 - Procesos Pedagógicos (Generales): {procesos_pedagogicos_str}
 
-TU MISIÓN: El docente te dará información mínima. TÚ DEBES desarrollar todo el documento con altísimo rigor académico, pertinencia para el nivel {nivel} y calidad de IMPRENTA/EDITORIAL.
+TU MISIÓN: El docente te dará información mínima. TÚ DEBES desarrollar todo el documento con altísimo rigor académico, pertinencia para el nivel {nivel} y calidad de IMPRENTA/EDITORIAL basándote en modelos de sesiones de alto rendimiento.
 
 REGLAS INQUEBRANTABLES DE FORMATO:
 1. Usa Markdown estándar (Títulos con ## y ###). No uses HTML.
@@ -118,56 +118,65 @@ REGLAS INQUEBRANTABLES DE FORMATO:
     if tipo_doc == "Programación Anual":
         base += f"""
 ESTRUCTURA OBLIGATORIA (PROGRAMACIÓN ANUAL - NIVEL {nivel.upper()}):
-1. **Datos Informativos.**
-2. **Descripción General:** Describe brevemente el contexto y las características de los estudiantes de {nivel}.
-3. **Propósitos de Aprendizaje:** TABLA con Competencias, Capacidades y Estándares precisos para el ciclo correspondiente de {nivel}.
-4. **Organización de las Unidades Didácticas/Proyectos:** TABLA organizada por bimestres/trimestres con Título, Situación Significativa, Duración y Productos.
-5. **Enfoques Transversales:** Priorizados en el año.
-6. **Estrategias Metodológicas y Recursos:** Específicos para el aprendizaje en {nivel}.
-7. **Evaluación:** Según RVM 094-2020 (Diagnóstica, formativa y sumativa).
+1. **DATOS INFORMATIVOS.**
+2. **DESCRIPCIÓN GENERAL:** Describe brevemente el contexto y las características de los estudiantes de {nivel}.
+3. **PROPÓSITOS DE APRENDIZAJE:** TABLA con Competencias, Capacidades y Estándares precisos para el ciclo correspondiente de {nivel}.
+4. **ORGANIZACIÓN DE LAS UNIDADES DIDÁCTICAS/PROYECTOS:** TABLA organizada por bimestres/trimestres con Título, Situación Significativa, Duración y Productos.
+5. **ENFOQUES TRANSVERSALES:** Priorizados en el año.
+6. **ESTRATEGIAS METODOLÓGICAS Y RECURSOS:** Específicos para el aprendizaje en {nivel}.
+7. **EVALUACIÓN:** Según RVM 094-2020 (Diagnóstica, formativa y sumativa).
 """
     elif tipo_doc == "Unidad Didáctica":
         base += f"""
 ESTRUCTURA OBLIGATORIA (UNIDAD DIDÁCTICA / PROYECTOS DE APRENDIZAJE - NIVEL {nivel.upper()}):
-1. **Datos Informativos.**
-2. **Situación Significativa:** Debe contener un Contexto altamente descriptivo, un Reto (pregunta movilizadora) y el Producto final esperado adaptado a {nivel}.
-3. **Propósitos y Evidencias:** TABLA MAESTRA relacionando Competencias, Capacidades, Desempeños precisados (para {nivel}), Criterios de Evaluación y Evidencias.
-4. **Secuencia de Sesiones:** TABLA resumen indicando N° Sesión, Título, Desempeño y Actividad principal.
-5. **Materiales y Recursos.**
+1. **DATOS INFORMATIVOS.**
+2. **SITUACIÓN SIGNIFICATIVA:** Debe contener un Contexto altamente descriptivo, un Reto (pregunta movilizadora) y el Producto final esperado adaptado a {nivel}.
+3. **PROPÓSITOS Y EVIDENCIAS DE APRENDIZAJE:** TABLA MAESTRA relacionando Competencias, Capacidades, Desempeños precisados (para {nivel}), Criterios de Evaluación y Evidencias.
+4. **SECUENCIA DE SESIONES:** TABLA resumen indicando N° Sesión, Título, Desempeño y Actividad principal.
+5. **MATERIALES Y RECURSOS.**
 """
     elif tipo_doc == "Sesión de Aprendizaje":
         base += f"""
-ESTRUCTURA OBLIGATORIA ESTRICTA (SESIÓN DE APRENDIZAJE CNEB - NIVEL {nivel.upper()}):
-**Sesión de Aprendizaje N° 01: [Escribe el título sugerido, atractivo y relacionado al reto]**
+ESTRUCTURA OBLIGATORIA ESTRICTA (BASADO EN MODELO OFICIAL CNEB - NIVEL {nivel.upper()}):
 
-**I.- Datos Informativos:**
-(Llenar con los datos dados)
+**SESIÓN DE APRENDIZAJE N° [Asigna un número]: [Escribe el título sugerido, atractivo y relacionado al reto]**
 
-**II.- Propósitos de Aprendizaje y Evaluación:**
-TABLA: Área | Competencia | Capacidad(es) | Desempeño precisado para {nivel} | Evidencia | Criterio de evaluación | Instrumento.
+**1. DATOS INFORMATIVOS:**
+(Llenar con los datos provistos: I.E., Docente, Grado, Área, Fecha, Duración)
 
-**III.- Enfoques Transversales:**
-TABLA: Enfoque | Valor o actitud | Comportamiento observable adaptado a {nivel}.
+**2. TÍTULO DE LA ACTIVIDAD:**
+[Repetir el Título]
 
-**IV.- Preparación de la Sesión:**
-TABLA: | ¿Qué necesitamos hacer antes de la sesión? | ¿Qué recursos o materiales se utilizarán? |
+**3. PROPÓSITOS Y EVIDENCIAS DE APRENDIZAJE:**
+TABLA: | Competencias / Capacidades | Desempeños precisados ({nivel}) | Evidencias de aprendizaje | Criterios de evaluación | Instrumento de evaluación |
 
-**V.- Secuencia Didáctica (BAJO EL ENFOQUE: {enfoque_area}):**
-TABLA: | Momentos | Estrategias / Actividades (DESCRIPCIÓN SÓLIDA y MEDIACIÓN) | Tiempo |
-- INICIO: Motivación, Saberes previos, Problematización (Conflicto cognitivo), Propósito y acuerdos.
-- DESARROLLO: DEBES ESCRIBIR EN NEGRITA CADA PROCESO DIDÁCTICO: {procesos_area}. Detalla la gestión, el acompañamiento docente y la actividad del estudiante (adecuado a la madurez de {nivel}).
-- CIERRE: Evaluación formativa y Metacognición (preguntas reflexivas).
+**4. ENFOQUE TRANSVERSAL:**
+TABLA: | Enfoque Transversal | Valor | Actitudes o acciones observables (adaptado a {nivel}) |
 
-**Firmas:**
-_______________________________________
-Docente: [Escribe el nombre del docente]
-_______________________________________
-V° B° Director(a) / Sub Director(a)
+**5. PREPARACIÓN DE LA SESIÓN:**
+TABLA: | ¿Qué se debe hacer antes de la sesión? | ¿Qué recursos o materiales se utilizarán en la sesión? |
 
-**VI.- Anexos:** - **Anexo N° 1: Instrumento de Evaluación:** TABLA PROFESIONAL (Lista de cotejo o Rúbrica) basada en los criterios declarados y la RVM 094.
-- **Anexo N° 2: Ficha de Trabajo para el Estudiante (CALIDAD IMPRENTA/EDITORIAL):** Diseña una ficha visualmente atractiva exclusiva para {nivel}. 
-  * DEBES INCLUIR OBLIGATORIAMENTE ESTA ETIQUETA EXACTA donde deba ir una imagen ilustrativa atractiva acorde al nivel y tema: `[IMAGEN_SUGERIDA: descripción muy detallada de la imagen en inglés, estilo ilustración infantil o juvenil]`. Ejemplo: `[IMAGEN_SUGERIDA: cute 2d illustration of peruvian kids planting trees in the amazon, coloring book style, high quality]`. Nuestro sistema la reemplazará por una imagen real.
-  * Usa cuadros de texto simulados, líneas punteadas `.........................` y ejercicios de nivel cognitivo superior acordes a {nivel}.
+**6. MOMENTOS DE LA SESIÓN:**
+- **INICIO (Tiempo aproximado):** Saludo y normas de convivencia. Motivación y Saberes previos. Problematización (Conflicto cognitivo). **MUY IMPORTANTE:** Declara explícitamente a los estudiantes el **PROPÓSITO** de la clase y los **CRITERIOS DE EVALUACIÓN** en este momento.
+- **DESARROLLO (Tiempo aproximado):** DEBES ESCRIBIR EN NEGRITA CADA PROCESO DIDÁCTICO DEL ÁREA ({procesos_area}). Ejemplo para Comunicación: **Antes de la lectura**, **Durante la lectura**, **Después de la lectura**. Detalla minuciosamente la gestión, el acompañamiento docente y la actividad del estudiante.
+- **CIERRE (Tiempo aproximado):** Evaluación formativa. Metacognición con preguntas claras (¿Qué aprendimos?, ¿Cómo lo hicimos?, ¿Para qué sirve?, ¿Qué dificultades tuvimos?).
+
+**7. REFLEXIONES DEL APRENDIZAJE:**
+(Deja estos espacios en blanco con líneas punteadas para que el docente los llene después de dictar la clase)
+- ¿Qué avances tuvieron mis estudiantes? ..............................................................
+- ¿Qué dificultades tuvieron mis estudiantes? ..........................................................
+- ¿Qué aprendizajes debo reforzar en la siguiente sesión? ..............................................
+- ¿Qué actividades, estrategias y materiales funcionaron y cuáles no? ..................................
+
+**Firma:**
+_______________________________________                 _______________________________________
+V° B° Director(a) / Sub Director(a)                     Docente: [Escribe el nombre del docente]
+
+**8. ANEXOS:**
+- **Anexo N° 1: Instrumento de Evaluación:** TABLA PROFESIONAL (Lista de cotejo o Rúbrica) basada estrictamente en los criterios declarados en la sección 3, con un listado simulado (o en blanco) para estudiantes.
+- **Anexo N° 2: Ficha de Aplicación / Trabajo para el Estudiante (CALIDAD IMPRENTA/EDITORIAL):** * Diseña una ficha visualmente atractiva exclusiva para el nivel cognitivo de {nivel}. 
+  * DEBES INCLUIR OBLIGATORIAMENTE ESTA ETIQUETA EXACTA donde deba ir una imagen ilustrativa atractiva: `[IMAGEN_SUGERIDA: descripción muy detallada de la imagen en inglés, estilo ilustración infantil o juvenil]`. Nuestro sistema la reemplazará por una imagen real.
+  * Incluye al final de la ficha un breve cuadro de **Autoevaluación del Estudiante** (Ej. "¡Así evaluó mis aprendizajes!" con criterios "Lo logré", "Lo estoy intentando", "Necesito ayuda").
 """
     return base
 
