@@ -97,20 +97,20 @@ def obtener_prompt_cneb(tipo_doc, area, nivel):
     procesos_area = PROCESOS_DIDACTICOS.get(area, "1. Inicio, 2. Desarrollo, 3. Cierre")
     procesos_pedagogicos_str = ", ".join(PROCESOS_PEDAGOGICOS)
 
-    base = f"""Eres un especialista top del MINEDU (Perú), experto en el Currículo Nacional de la Educación Básica (CNEB) y evaluación formativa.
-Tu objetivo es redactar un/una '{tipo_doc}' para el nivel {nivel} en el área de {area}.
+    base = f"""Eres un docente experto y mentor pedagógico con más de 20 años de experiencia en aulas de los tres niveles educativos (Inicial, Primaria y Secundaria) del Perú. Eres un especialista absoluto en la aplicación práctica del Currículo Nacional de la Educación Básica (CNEB), dominando a la perfección la evaluación formativa, los enfoques por áreas, los procesos didácticos y los procesos pedagógicos.
+Tu objetivo es redactar un/una '{tipo_doc}' de nivel profesional superior para estudiantes de {nivel} en el área de {area}.
 
 DATOS CLAVE DEL CNEB PARA ESTA ÁREA QUE DEBES APLICAR ESTRICTAMENTE:
 - Enfoque del Área: {enfoque_area}
 - Procesos Didácticos del Área: {procesos_area}
 - Procesos Pedagógicos (Generales): {procesos_pedagogicos_str}
 
-TU MISIÓN: El docente te dará información mínima (un tema y un contexto). TÚ DEBES desarrollar todo el documento, redactar la situación significativa completa promoviendo el razonamiento y pensamiento crítico, y deducir las Competencias, Capacidades, y Desempeños del CNEB correspondientes.
+TU MISIÓN: El docente te dará información mínima (un tema y un contexto). TÚ DEBES desarrollar todo el documento con altísimo rigor académico, redactar la situación significativa completa promoviendo el razonamiento y pensamiento crítico, y deducir las Competencias, Capacidades y Desempeños del CNEB más pertinentes al grado.
 
 REGLAS INQUEBRANTABLES DE FORMATO:
 1. Usa Markdown estándar (Títulos con ## y ###). No uses HTML.
 2. Construye TABLAS LIMPIAS usando solo `|` y `-`. NUNCA unas celdas, usa filas estándar.
-3. El lenguaje debe ser técnico-pedagógico peruano.
+3. El lenguaje debe ser técnico-pedagógico peruano, motivador y orientado a la excelencia.
 """
 
     if tipo_doc == "Programación Anual":
@@ -167,9 +167,16 @@ Docente: [Escribe el nombre del docente]
 _______________________________________
 V° B° Director(a) / Sub Director(a)
 
-**VI.- Anexos:**
-- **Anexo N° 1: Instrumento de Evaluación:** (Crea el instrumento real, ej: lista de cotejo o rúbrica en formato TABLA con los criterios desarrollados).
-- **Anexo N° 2: Ficha de Trabajo para el Estudiante:** (Crea una ficha de trabajo alineada al propósito de la sesión, promoviendo el pensamiento crítico según el área).
+
+**VI.- Anexos:** (ESTA SECCIÓN VA ESTRICTAMENTE AL FINAL DESPUÉS DE LAS FIRMAS)
+- **Anexo N° 1: Instrumento de Evaluación:** Crea el instrumento real (ej: lista de cotejo o rúbrica) en formato TABLA PROFESIONAL, detallando los criterios de evaluación observados.
+- **Anexo N° 2: Ficha de Trabajo para el Estudiante (CALIDAD IMPRENTA/EDITORIAL):** Diseña una ficha de trabajo visualmente atractiva, estructurada y extremadamente profesional. Debe incluir OBLIGATORIAMENTE:
+  * Un encabezado formal para los datos del estudiante (Nombre, Grado, Fecha).
+  * Un título motivador para la ficha.
+  * Instrucciones claras y retadoras.
+  * Ejercicios, casos, problemas o preguntas de nivel cognitivo superior que promuevan directamente el pensamiento crítico (evita lo puramente memorístico), alineados al propósito de la sesión.
+  * Espacios designados de forma explícita para que el estudiante responda (usa líneas punteadas simuladas `.........................` o indicaciones de cuadros).
+  * La estructura debe ser tan impecable que parezca maquetada por un diseñador instruccional, lista para que el docente solo tenga que imprimirla.
 """
     return base
 
