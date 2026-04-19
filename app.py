@@ -81,6 +81,58 @@ PROCESOS_PEDAGOGICOS = [
     "Propósito y organización", "Gestión y acompañamiento", "Evaluación"
 ]
 
+# --- MATRIZ DE COMPETENCIAS Y CAPACIDADES CNEB ---
+MATRIZ_COMPETENCIAS = {
+    "Personal Social": "Competencia: Construye su identidad. Capacidades: Se valora a sí mismo / Autorregula sus emociones / Reflexiona y argumenta éticamente / Vive su sexualidad de manera integral.\nCompetencia: Se desenvuelve de manera autónoma a través de su motricidad.\nCompetencia: Asume una vida saludable.\nCompetencia: Interactúa a través de sus habilidades sociomotrices.\nCompetencia: Convive y participa democráticamente en la búsqueda del bien común. Capacidades: Interactúa con todas las personas / Construye normas y asume acuerdos / Maneja conflictos / Delibera sobre asuntos públicos / Participa en acciones que promueven el bienestar común.\nCompetencia: Construye interpretaciones históricas.\nCompetencia: Gestiona responsablemente el espacio y el ambiente.\nCompetencia: Gestiona responsablemente los recursos económicos.",
+    "DPCC": "Competencia: Construye su identidad. Capacidades: Se valora a sí mismo / Autorregula sus emociones / Reflexiona y argumenta éticamente / Vive su sexualidad de manera integral.\nCompetencia: Convive y participa democráticamente en la búsqueda del bien común. Capacidades: Interactúa con todas las personas / Construye normas y asume acuerdos / Maneja conflictos / Delibera sobre asuntos públicos / Participa en acciones que promueven el bienestar común.",
+    "Ciencias Sociales": "Competencia: Construye interpretaciones históricas.\nCompetencia: Gestiona responsablemente el espacio y el ambiente.\nCompetencia: Gestiona responsablemente los recursos económicos.",
+    "Comunicación": "Competencia: Se comunica oralmente en su lengua materna. Capacidades: Obtiene información del texto oral / Infiere e interpreta información / Adecúa, organiza y desarrolla las ideas / Utiliza recursos no verbales / Interactúa estratégicamente / Reflexiona y evalúa.\nCompetencia: Lee diversos tipos de textos escritos en su lengua materna. Capacidades: Obtiene información del texto escrito / Infiere e interpreta información / Reflexiona y evalúa la forma, el contenido y contexto.\nCompetencia: Escribe diversos tipos de textos en su lengua materna. Capacidades: Adecúa el texto a la situación comunicativa / Organiza y desarrolla las ideas de forma coherente / Utiliza convenciones del lenguaje escrito / Reflexiona y evalúa.",
+    "Inglés": "Competencia: Se comunica oralmente en inglés. Capacidades: Obtiene información del texto oral / Infiere e interpreta información / Adecúa, organiza y desarrolla las ideas / Utiliza recursos no verbales / Interactúa estratégicamente / Reflexiona y evalúa.\nCompetencia: Lee diversos tipos de textos escritos en inglés. Capacidades: Obtiene información del texto escrito / Infiere e interpreta información / Reflexiona y evalúa la forma, el contenido y contexto.\nCompetencia: Escribe diversos tipos de textos en inglés. Capacidades: Adecúa el texto a la situación comunicativa / Organiza y desarrolla las ideas de forma coherente / Utiliza convenciones del lenguaje escrito / Reflexiona y evalúa.",
+    "Arte y Cultura": "Competencia: Aprecia de manera crítica manifestaciones artístico-culturales.\nCompetencia: Crea proyectos desde los lenguajes artísticos. Capacidades: Explora y experimenta los lenguajes del arte / Aplica procesos creativos / Evalúa y comunica sus procesos y proyectos.",
+    "Matemática": "Competencia: Resuelve problemas de cantidad. Capacidades: Traduce cantidades a expresiones numéricas / Comunica su comprensión sobre los números / Usa estrategias y procedimientos de estimación / Argumenta afirmaciones.\nCompetencia: Resuelve problemas de regularidad, equivalencia y cambio.\nCompetencia: Resuelve problemas de forma, movimiento y localización.\nCompetencia: Resuelve problemas de gestión de datos e incertidumbre.",
+    "Ciencia y Tecnología": "Competencia: Indaga mediante métodos científicos para construir sus conocimientos. Capacidades: Problematiza situaciones / Diseña estrategias para hacer indagación / Genera y registra datos o información / Analiza datos e información / Evalúa y comunica.\nCompetencia: Explica el mundo físico basándose en conocimientos sobre los seres vivos, materia y energía, biodiversidad, Tierra y universo.\nCompetencia: Diseña y construye soluciones tecnológicas para resolver problemas de su entorno.",
+    "Educación Religiosa": "Competencia: Construye su identidad como persona humana, amada por Dios, digna, libre y trascendente.\nCompetencia: Asume la experiencia el encuentro personal y comunitario con Dios en su proyecto de vida.",
+    "EPT": "Competencia: Gestiona proyectos de emprendimiento económico o social. Capacidades: Crea propuestas de valor / Aplica habilidades técnicas / Trabaja cooperativamente para lograr objetivos / Evalúa los resultados del proyecto.",
+    "Descubrimiento del Mundo": "Competencia: Indaga mediante métodos científicos para construir sus conocimientos. Capacidades: Problematiza situaciones / Diseña estrategias para hacer indagación / Genera y registra datos o información / Analiza datos e información / Evalúa y comunica.",
+    "Psicomotriz": "Competencia: Se desenvuelve de manera autónoma a través de su motricidad. Capacidades: Comprende su cuerpo / Se expresa corporalmente.",
+    "Educación Física": "Competencia: Se desenvuelve de manera autónoma a través de su motricidad.\nCompetencia: Asume una vida saludable.\nCompetencia: Interactúa a través de sus habilidades sociomotrices.",
+    "Tutoría": "Dimensión: Desarrollo personal / Desarrollo de los aprendizajes / Desarrollo social comunitario."
+}
+
+COMPETENCIAS_TRANSVERSALES = """Competencia: Se desenvuelve en los entornos virtuales generados por las TIC. Capacidades: Personaliza entornos virtuales / Gestiona información del entorno virtual / Interactúa en entornos virtuales / Crea objetos virtuales en diversos formatos.
+Competencia: Gestiona su aprendizaje de manera autónoma. Capacidades: Define metas de aprendizaje / Organiza acciones estratégicas para alcanzar sus metas / Monitorea y ajusta su desempeño."""
+
+# --- PROGRESIÓN DE ESTÁNDARES POR CICLO (REFERENCIA CNEB) ---
+def obtener_ciclo(nivel, grado):
+    if nivel == "Inicial": return "Ciclo II"
+    if nivel == "Primaria":
+        if grado in ["1ro", "2do"]: return "Ciclo III"
+        if grado in ["3ro", "4to"]: return "Ciclo IV"
+        if grado in ["5to", "6to"]: return "Ciclo V"
+    if nivel == "Secundaria":
+        if grado in ["1ro", "2do"]: return "Ciclo VI"
+        if grado in ["3ro", "4to", "5to"]: return "Ciclo VII"
+    return "Ciclo no definido"
+
+ESTANDARES_LECTURA_CNEB = {
+    "Ciclo II": "Lee diversos tipos de textos que tratan temas reales o imaginarios que le son cotidianos, en los que predominan palabras conocidas y que se acompañan con ilustraciones. Construye hipótesis o predicciones sobre la información contenida en los textos...",
+    "Ciclo III": "Lee diversos tipos de textos de estructura simple en los que predominan palabras conocidas e ilustraciones que apoyan las ideas centrales. Obtiene información poco evidente distinguiéndola de otra semejante y realiza inferencias locales a partir de información explícita...",
+    "Ciclo IV": "Lee diversos tipos de textos que presentan estructura simple con algunos elementos complejos y con vocabulario variado. Obtiene información poco evidente distinguiéndola de otras próximas y semejantes. Realiza inferencias locales a partir de información explícita e implícita...",
+    "Ciclo V": "Lee diversos tipos de textos con varios elementos complejos en su estructura y con vocabulario variado. Obtiene información e integra datos que están en distintas partes del texto. Realiza inferencias locales a partir de información explícita e implícita...",
+    "Ciclo VI": "Lee diversos tipos de texto con estructuras complejas y vocabulario variado. Integra información contrapuesta que está en distintas partes del texto. Interpreta el texto considerando información relevante y complementaria para construir su sentido global...",
+    "Ciclo VII": "Lee diversos tipos de texto con estructuras complejas y vocabulario variado. Integra información contrapuesta que está en distintas partes del texto. Interpreta el texto considerando información relevante y de detalle para construir su sentido global..."
+}
+
+# --- CALENDARIO ESCOLAR MINEDU (DIRECTRICES DE PLANIFICACIÓN) ---
+CALENDARIO_MINEDU = """CALENDARIZACIÓN ESCOLAR MINEDU (REFERENCIAL 36 SEMANAS LECTIVAS Y 4 DE GESTIÓN):
+- Primer bloque de semanas de gestión: 2 semanas (Inicio de marzo).
+- Primer bloque de semanas lectivas (I Bimestre): 9 semanas (Aprox. Marzo a Mayo).
+- Segundo bloque de semanas lectivas (II Bimestre): 9 semanas (Aprox. Mayo a Julio).
+- Segundo bloque de semanas de gestión (Vacaciones de estudiantes): 2 semanas (Fines de Julio / Inicios de Agosto).
+- Tercer bloque de semanas lectivas (III Bimestre): 9 semanas (Aprox. Agosto a Octubre).
+- Cuarto bloque de semanas lectivas (IV Bimestre): 9 semanas (Aprox. Octubre a Diciembre).
+- Tercer bloque de semanas de gestión: 1 a 2 semanas (Fines de Diciembre)."""
+
 # --- CONEXIÓN SEGURA CON LA API ---
 try:
     api_key = st.secrets.get("ZHIPU_KEY", "TU_API_KEY_AQUI_SI_NO_USAS_SECRETS")
@@ -89,23 +141,37 @@ except Exception:
     client = None
 
 # --- MOTOR DE PROMPTS CNEB (CEREBRO PEDAGÓGICO ACTUALIZADO BADO EN MODELO) ---
-def obtener_prompt_cneb(tipo_doc, area, nivel):
+def obtener_prompt_cneb(tipo_doc, area, nivel, grado):
+    ciclo = obtener_ciclo(nivel, grado)
     enfoque_area = ENFOQUES_AREAS.get(area, "Enfoque por competencias")
     procesos_area = PROCESOS_DIDACTICOS.get(area, "1. Inicio, 2. Desarrollo, 3. Cierre")
     procesos_pedagogicos_str = ", ".join(PROCESOS_PEDAGOGICOS)
+    competencias_capacidades_area = MATRIZ_COMPETENCIAS.get(area, "Competencias y capacidades del área.")
+
+    info_estandar_extra = ""
+    if area == "Comunicación":
+        estandar_ciclo = ESTANDARES_LECTURA_CNEB.get(ciclo, "")
+        info_estandar_extra = f"\n- ESTÁNDAR DE APRENDIZAJE REFERENCIAL ({ciclo}): {estandar_ciclo}"
 
     base = f"""Eres "EDUPLAN IA", un Especialista Senior y Mentor Pedagógico del MINEDU con más de 20 años de experiencia en la Educación Básica Regular del Perú.
-Tu misión es redactar un/una '{tipo_doc}' de nivel profesional superior, listo para impresión, para el área de {area} enfocado específicamente en estudiantes del nivel {nivel}.
+Tu misión es redactar un/una '{tipo_doc}' de nivel profesional superior, listo para impresión, para el área de {area} enfocado específicamente en estudiantes del nivel {nivel} ({ciclo}).
 
 BASE NORMATIVA Y DOCUMENTAL ESTRICTA QUE DEBES APLICAR:
 1. Currículo Nacional de la Educación Básica (CNEB).
-2. Programa Curricular de Educación {nivel} (Utiliza las competencias, capacidades y estándares correspondientes a la edad/ciclo de los estudiantes de {nivel}).
+2. Programa Curricular de Educación {nivel} (Utiliza las competencias, capacidades y estándares correspondientes a la edad/ciclo de los estudiantes de {nivel} y del {ciclo}).
 3. RVM N° 094-2020-MINEDU (Obligatorio aplicar la Evaluación Formativa: formulación de criterios de evaluación, evidencias pertinentes e instrumentos claros).
 
 DATOS CLAVE DEL CNEB PARA ESTA ÁREA QUE DEBES APLICAR ESTRICTAMENTE:
+- Nivel y Ciclo: {nivel} - {ciclo} (DEBES adaptar la complejidad estrictamente a este ciclo).
 - Enfoque del Área: {enfoque_area}
 - Procesos Didácticos del Área: {procesos_area}
 - Procesos Pedagógicos (Generales): {procesos_pedagogicos_str}
+- MATRIZ DE COMPETENCIAS Y CAPACIDADES DEL ÁREA (Obligatorio movilizar estas capacidades simultáneamente):
+{competencias_capacidades_area}
+- COMPETENCIAS TRANSVERSALES (Afectan a todas las áreas):
+{COMPETENCIAS_TRANSVERSALES}{info_estandar_extra}
+- ESTRUCTURA DEL CALENDARIO MINEDU VIGENTE:
+{CALENDARIO_MINEDU}
 
 TU MISIÓN: El docente te dará información mínima. TÚ DEBES desarrollar todo el documento con altísimo rigor académico, pertinencia para el nivel {nivel} y calidad de IMPRENTA/EDITORIAL basándote en modelos de sesiones de alto rendimiento.
 
@@ -525,7 +591,7 @@ def render_generador(tipo_doc, tab_key):
 - Enfoque Transversal: {enfoque_transversal}
 {opciones_extra}
 """
-    prompt_dinamico = obtener_prompt_cneb(tipo_doc, area_sel, nivel_global)
+    prompt_dinamico = obtener_prompt_cneb(tipo_doc, area_sel, nivel_global, grado_sel)
 
     if st.button(f"🚀 GENERAR {tipo_doc.upper()} MÁGICAMENTE", key=f"btn_{tab_key}"):
         if not titulo_doc:
