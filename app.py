@@ -37,7 +37,7 @@ CONTEXTOS_LOCALES = [
     "Otro contexto (Especificar brevemente)"
 ]
 
-# --- DICCIONARIOS MINEDU: ENFOQUES Y PROCESOS DIDÁCTICOS ---
+# --- DICCIONARIOS MINEDU: ENFOQUES Y PROCESOS DIDÁCTICOS (ACTUALIZADOS CON EL DOC ADJUNTO) ---
 ENFOQUES_AREAS = {
     "Matemática": "Resolución de problemas",
     "Comunicación": "Comunicativo (Textual e intertextual)",
@@ -55,13 +55,15 @@ ENFOQUES_AREAS = {
     "Descubrimiento del Mundo": "Indagación científica"
 }
 
+# Procesos Didácticos actualizados según el documento Dimensión.docx
 PROCESOS_DIDACTICOS = {
-    "Matemática": "1. Familiarización con el problema. 2. Búsqueda y ejecución de estrategias. 3. Socialización de representaciones. 4. Reflexión y formalización. 5. Planteamiento de otros problemas.",
-    "Comunicación": "1. Antes del discurso/lectura/escritura (Planificación). 2. Durante el discurso/lectura/escritura (Textualización). 3. Después del discurso/lectura/escritura (Revisión/Reflexión).",
-    "Personal Social": "1. Problematización. 2. Búsqueda de la información. 3. Toma de acuerdos o decisiones.",
-    "Ciencias Sociales": "1. Problematización. 2. Búsqueda de la información. 3. Toma de acuerdos o decisiones.",
-    "DPCC": "1. Problematización. 2. Búsqueda de la información. 3. Toma de acuerdos o decisiones.",
-    "Ciencia y Tecnología": "1. Planteamiento del problema. 2. Planteamiento de hipótesis. 3. Elaboración del plan de acción. 4. Recojo de datos y análisis. 5. Estructuración del saber construido como respuesta al problema. 6. Evaluación y comunicación.",
+    "Matemática": "1. Comprensión del problema. 2. Estrategias. 3. Representación (concreto → simbólico). 4. Formalización. 5. Reflexión y transferencia.",
+    "Comunicación": "1. Aproximación al texto / Contextualización. 2. Comprensión y producción (antes, durante, después). 3. Reflexión y revisión.",
+    "Personal Social": "1. Problematización. 2. Análisis de información. 3. Acuerdos / toma de decisiones.",
+    "Ciencias Sociales": "1. Problematización. 2. Análisis de información. 3. Acuerdos / toma de decisiones.",
+    "DPCC": "1. Problematización. 2. Análisis de información. 3. Acuerdos / toma de decisiones.",
+    "Ciencia y Tecnología": "1. Problematización. 2. Diseño de estrategias. 3. Registro de datos. 4. Análisis. 5. Evaluación y comunicación.",
+    # Los demás se mantienen según estándar
     "Educación Física": "1. Motivación, exploración y calentamiento. 2. Desarrollo de la actividad central. 3. Vuelta a la calma y relajación.",
     "Arte y Cultura": "1. Desafío/Reto. 2. Exploración y experimentación. 3. Producción preliminar. 4. Revisión y afinamiento. 5. Presentación y reflexión.",
     "Educación Religiosa": "1. Ver. 2. Juzgar. 3. Actuar. 4. Revisar. 5. Celebrar.",
@@ -71,6 +73,16 @@ PROCESOS_DIDACTICOS = {
     "Descubrimiento del Mundo": "1. Observación. 2. Planteamiento de preguntas. 3. Exploración. 4. Comunicación.",
     "Tutoría": "1. Presentación. 2. Desarrollo. 3. Cierre."
 }
+
+# Procesos Pedagógicos Generales extraídos del documento
+PROCESOS_PEDAGOGICOS = [
+    "Motivación", 
+    "Saberes previos", 
+    "Problematización", 
+    "Propósito y organización", 
+    "Gestión y acompañamiento", 
+    "Evaluación"
+]
 
 # --- CONEXIÓN SEGURA CON LA API ---
 try:
@@ -83,6 +95,7 @@ except Exception:
 def obtener_prompt_cneb(tipo_doc, area, nivel):
     enfoque_area = ENFOQUES_AREAS.get(area, "Enfoque por competencias")
     procesos_area = PROCESOS_DIDACTICOS.get(area, "1. Inicio, 2. Desarrollo, 3. Cierre")
+    procesos_pedagogicos_str = ", ".join(PROCESOS_PEDAGOGICOS)
 
     base = f"""Eres un especialista top del MINEDU (Perú), experto en el Currículo Nacional de la Educación Básica (CNEB) y evaluación formativa.
 Tu objetivo es redactar un/una '{tipo_doc}' para el nivel {nivel} en el área de {area}.
@@ -90,6 +103,7 @@ Tu objetivo es redactar un/una '{tipo_doc}' para el nivel {nivel} en el área de
 DATOS CLAVE DEL CNEB PARA ESTA ÁREA QUE DEBES APLICAR ESTRICTAMENTE:
 - Enfoque del Área: {enfoque_area}
 - Procesos Didácticos del Área: {procesos_area}
+- Procesos Pedagógicos (Generales): {procesos_pedagogicos_str}
 
 TU MISIÓN: El docente te dará información mínima (un tema y un contexto). TÚ DEBES desarrollar todo el documento, redactar la situación significativa completa promoviendo el razonamiento y pensamiento crítico, y deducir las Competencias, Capacidades, y Desempeños del CNEB correspondientes.
 
@@ -140,9 +154,9 @@ Crea OBLIGATORIAMENTE una TABLA con dos columnas exactas:
 **V.- Secuencia Didáctica (BAJO EL ENFOQUE: {enfoque_area}):**
 Crea OBLIGATORIAMENTE una TABLA con tres columnas exactas:
 | Momentos | Estrategias / Actividades (DESCRIPCIÓN SÓLIDA Y PROFESIONAL) | Tiempo |
-- En la fila de INICIO: Explica detalladamente y paso a paso cómo se realizará la Motivación, el recojo de Saberes Previos, la Problematización (generación del conflicto cognitivo) y la presentación del Propósito. La redacción debe ser profunda, clara y evidenciar la interacción docente-estudiante.
-- En la fila de DESARROLLO (PROCESO): Esta es la parte más importante. DEBES ESCRIBIR EN NEGRITA CADA UNO DE LOS SIGUIENTES PROCESOS DIDÁCTICOS DEL ÁREA: {procesos_area}. Para cada proceso, explica a detalle las acciones del docente (mediación) y las acciones de los estudiantes. Explica cómo se promueve el razonamiento, el pensamiento crítico y la indagación (evita actividades mecánicas).
-- En la fila de CIERRE: Explica a detalle la Evaluación formativa (cómo se comprueba el aprendizaje) y la Metacognición (incluye preguntas reflexivas específicas y retadoras que se harán a los estudiantes).
+- En la fila de INICIO: Explica detalladamente cómo se desarrollan los procesos pedagógicos de: **Motivación**, **Saberes previos**, **Problematización** y **Propósito y organización**. Evidencia la interacción docente-estudiante.
+- En la fila de DESARROLLO (PROCESO): Esta es la parte más importante. DEBES ESCRIBIR EN NEGRITA CADA UNO DE LOS SIGUIENTES PROCESOS DIDÁCTICOS DEL ÁREA: {procesos_area}. Para cada proceso, explica a detalle las acciones de **Gestión y acompañamiento** del docente (mediación) y las acciones de los estudiantes. Explica cómo se promueve el razonamiento, pensamiento crítico e indagación.
+- En la fila de CIERRE: Evidencia el proceso pedagógico de **Evaluación**. Explica a detalle la Evaluación formativa (cómo se comprueba el aprendizaje) y la Metacognición (incluye preguntas reflexivas específicas y retadoras que se harán a los estudiantes).
 
 **Firmas:**
 (Añade este espacio exacto antes de pasar a los anexos para la validación del documento):
@@ -152,7 +166,6 @@ Docente: [Escribe el nombre del docente]
 
 _______________________________________
 V° B° Director(a) / Sub Director(a)
-
 
 **VI.- Anexos:**
 - **Anexo N° 1: Instrumento de Evaluación:** (Crea el instrumento real, ej: lista de cotejo o rúbrica en formato TABLA con los criterios desarrollados).
@@ -213,13 +226,11 @@ st.markdown("""
 
 # --- FUNCIÓN PARA CARGAR LOGO LOCAL EN BASE64 ---
 def get_image_base64(image_path):
-    """Convierte la imagen local a Base64 para inyectarla en el HTML."""
     try:
         with open(image_path, "rb") as img_file:
             encoded_string = base64.b64encode(img_file.read()).decode()
         return f"data:image/jpeg;base64,{encoded_string}"
     except FileNotFoundError:
-        # Fallback en caso no exista el archivo logo.jpg
         return "https://cdn-icons-png.flaticon.com/512/8066/8066104.png"
 
 # --- INICIALIZACIÓN DE ESTADO ---
@@ -356,16 +367,30 @@ with st.sidebar:
     grado_sel = st.selectbox("Grado / Edad", grados)
     enfoque_transversal = st.selectbox("🌱 Enfoque Transversal", ENFOQUES_TRANSVERSALES)
     
-    # NUEVO: Mostramos al docente el enfoque del área que aplicará la IA
     st.info(f"📌 **Enfoque CNEB detectado:**\n{ENFOQUES_AREAS.get(area_sel, '')}")
 
 tab1, tab2, tab3 = st.tabs(["📅 PROGRAMACIÓN ANUAL", "📂 UNIDAD DIDÁCTICA", "📄 SESIÓN DE APRENDIZAJE"])
 
-# MOTOR DE RENDERIZADO SIMPLIFICADO PARA EL DOCENTE
+# MOTOR DE RENDERIZADO
 def render_generador(tipo_doc, tab_key):
     st.markdown('<div class="section-container">', unsafe_allow_html=True)
     st.subheader(f"📝 Opciones para: {tipo_doc}")
-    st.info("💡 La IA construirá las competencias y procesos didácticos automáticamente según el área seleccionada.")
+    
+    # FORMULARIO DINÁMICO PARA SESIÓN DE APRENDIZAJE
+    if tipo_doc == "Sesión de Aprendizaje":
+        with st.expander("🔍 Estructura Pedagógica (Lectura Automática del Sistema)", expanded=True):
+            st.markdown(f"**🌱 Enfoque Transversal Aplicado (Obligatorio):** {enfoque_transversal}")
+            
+            procesos_area_actual = PROCESOS_DIDACTICOS.get(area_sel, "Procesos no definidos")
+            st.markdown(f"**📚 Procesos Didácticos ({area_sel}):**")
+            st.info(procesos_area_actual)
+            
+            st.markdown("**⚙️ Procesos Pedagógicos (Preconfigurados):**")
+            cols_ped = st.columns(3)
+            for i, pp in enumerate(PROCESOS_PEDAGOGICOS):
+                cols_ped[i % 3].checkbox(pp, value=True, disabled=True)
+    else:
+        st.info("💡 La IA construirá las competencias y procesos didácticos automáticamente según el área seleccionada.")
     
     col1, col2 = st.columns(2)
     with col1:
@@ -384,12 +409,11 @@ def render_generador(tipo_doc, tab_key):
             key=f"tit_{tab_key}"
         )
 
-    # Ajustes extra si es Sesión
     opciones_extra = ""
     if tipo_doc == "Sesión de Aprendizaje":
         with st.expander("Ajustes Extra (Opcional)", expanded=False):
-            nee = st.toggle("Sugerencias para Inclusión (NEE)")
-            inst_eval = st.selectbox("Instrumento", ["Lista de Cotejo", "Rúbrica", "Ficha de Observación"])
+            nee = st.toggle("Sugerencias para Inclusión (NEE)", key=f"nee_{tab_key}")
+            inst_eval = st.selectbox("Instrumento", ["Lista de Cotejo", "Rúbrica", "Ficha de Observación"], key=f"inst_{tab_key}")
             opciones_extra = f"\n- Adaptación NEE: {'Sí' if nee else 'No'}\n- Instrumento: {inst_eval}"
 
     # Payload simplificado
@@ -410,7 +434,7 @@ def render_generador(tipo_doc, tab_key):
         else:
             with st.status(f"🤖 Estructurando bajo el enfoque de {ENFOQUES_AREAS.get(area_sel, '')}...", expanded=True) as status:
                 st.write("📖 Diseñando Situación Significativa con pensamiento crítico...")
-                st.write(f"⚙️ Estructurando procesos didácticos: {PROCESOS_DIDACTICOS.get(area_sel, '').split('.')[1]}...")
+                st.write(f"⚙️ Estructurando procesos didácticos y pedagógicos...")
                 resultado = procesar_ia(payload, prompt_dinamico)
                 st.session_state.resultados[tab_key] = (resultado, titulo_doc)
                 status.update(label="¡Documento CNEB Generado!", state="complete", expanded=False)
