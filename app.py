@@ -133,6 +133,15 @@ CALENDARIO_MINEDU = """CALENDARIZACIÓN ESCOLAR MINEDU (REFERENCIAL 36 SEMANAS L
 - Cuarto bloque de semanas lectivas (IV Bimestre): 9 semanas (Aprox. Octubre a Diciembre).
 - Tercer bloque de semanas de gestión: 1 a 2 semanas (Fines de Diciembre)."""
 
+# --- ESQUEMA DE EXPERIENCIA DE APRENDIZAJE (EdA) MINEDU ---
+ESQUEMA_EDA_MINEDU = """ESTRUCTURA OFICIAL DE LA EXPERIENCIA DE APRENDIZAJE (EdA):
+1. Planteamiento de la situación.
+2. Propósito de aprendizaje.
+3. Enfoques transversales.
+4. Producciones / actuaciones.
+5. Criterios de evaluación e Instrumentos.
+6. Secuencia de actividades sugeridas (Ruta en 3 fases: 1. Planteamos la situación -> 2. Desarrollamos las competencias -> 3. Evaluación y comunicación del producto o resultados)."""
+
 # --- CONEXIÓN SEGURA CON LA API ---
 try:
     api_key = st.secrets.get("ZHIPU_KEY", "TU_API_KEY_AQUI_SI_NO_USAS_SECRETS")
@@ -172,6 +181,8 @@ DATOS CLAVE DEL CNEB PARA ESTA ÁREA QUE DEBES APLICAR ESTRICTAMENTE:
 {COMPETENCIAS_TRANSVERSALES}{info_estandar_extra}
 - ESTRUCTURA DEL CALENDARIO MINEDU VIGENTE:
 {CALENDARIO_MINEDU}
+- ESQUEMA DE EXPERIENCIA DE APRENDIZAJE (EdA):
+{ESQUEMA_EDA_MINEDU}
 
 TU MISIÓN: El docente te dará información mínima. TÚ DEBES desarrollar todo el documento con altísimo rigor académico, pertinencia para el nivel {nivel} y calidad de IMPRENTA/EDITORIAL basándote en modelos de sesiones de alto rendimiento.
 
@@ -194,12 +205,17 @@ ESTRUCTURA OBLIGATORIA (PROGRAMACIÓN ANUAL - NIVEL {nivel.upper()}):
 """
     elif tipo_doc == "Unidad Didáctica":
         base += f"""
-ESTRUCTURA OBLIGATORIA (UNIDAD DIDÁCTICA / PROYECTOS DE APRENDIZAJE - NIVEL {nivel.upper()}):
+ESTRUCTURA OBLIGATORIA (UNIDAD DIDÁCTICA / EXPERIENCIA DE APRENDIZAJE - NIVEL {nivel.upper()}):
 1. **DATOS INFORMATIVOS.**
-2. **SITUACIÓN SIGNIFICATIVA:** Debe contener un Contexto altamente descriptivo, un Reto (pregunta movilizadora) y el Producto final esperado adaptado a {nivel}.
-3. **PROPÓSITOS Y EVIDENCIAS DE APRENDIZAJE:** TABLA MAESTRA relacionando Competencias, Capacidades, Desempeños precisados (para {nivel}), Criterios de Evaluación y Evidencias.
-4. **SECUENCIA DE SESIONES:** TABLA resumen indicando N° Sesión, Título, Desempeño y Actividad principal.
-5. **MATERIALES Y RECURSOS.**
+2. **PLANTEAMIENTO DE LA SITUACIÓN:** Debe contener un Contexto altamente descriptivo, un Problema y el Reto (pregunta movilizadora).
+3. **PROPÓSITOS DE APRENDIZAJE Y ENFOQUES TRANSVERSALES:** TABLA relacionando Competencias, Capacidades, Desempeños precisados (para {nivel}) y Enfoques Transversales.
+4. **PRODUCCIONES / ACTUACIONES Y CRITERIOS DE EVALUACIÓN:** Define el Producto final esperado adaptado a {nivel}, con sus evidencias, criterios de evaluación e instrumentos.
+5. **SECUENCIA DE ACTIVIDADES SUGERIDAS (RUTA DE APRENDIZAJE):** TABLA resumen dividida obligatoriamente en las 3 fases de la EdA: 
+   - *Fase 1: Planteamos la situación.*
+   - *Fase 2: Desarrollamos las competencias.*
+   - *Fase 3: Evaluación y comunicación del producto o resultados.*
+   Indica para cada actividad/sesión: N° Sesión, Título, Desempeño y Actividad principal.
+6. **MATERIALES Y RECURSOS.**
 """
     elif tipo_doc == "Sesión de Aprendizaje":
         base += f"""
