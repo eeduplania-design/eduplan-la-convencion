@@ -3,11 +3,15 @@ from zhipuai import ZhipuAI
 from docx import Document
 from docx.shared import Pt, Inches, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml.ns import nsdecls
+from docx.oxml import parse_xml
 import io
 import re
 import datetime
 import base64
 import os
+import requests
+import urllib.parse
 
 # --- CONFIGURACIÓN DE IDENTIDAD Y DATOS MAESTROS ---
 NOMBRE_APP = "EDUPLAN IA - LA CONVENCIÓN"
@@ -37,7 +41,7 @@ CONTEXTOS_LOCALES = [
     "Otro contexto (Especificar brevemente)"
 ]
 
-# --- DICCIONARIOS MINEDU: ENFOQUES Y PROCESOS DIDÁCTICOS (ACTUALIZADOS CON EL DOC ADJUNTO) ---
+# --- DICCIONARIOS MINEDU: ENFOQUES Y PROCESOS DIDÁCTICOS ---
 ENFOQUES_AREAS = {
     "Matemática": "Resolución de problemas",
     "Comunicación": "Comunicativo (Textual e intertextual)",
@@ -55,7 +59,6 @@ ENFOQUES_AREAS = {
     "Descubrimiento del Mundo": "Indagación científica"
 }
 
-# Procesos Didácticos actualizados según el documento Dimensión.docx
 PROCESOS_DIDACTICOS = {
     "Matemática": "1. Comprensión del problema. 2. Estrategias. 3. Representación (concreto → simbólico). 4. Formalización. 5. Reflexión y transferencia.",
     "Comunicación": "1. Aproximación al texto / Contextualización. 2. Comprensión y producción (antes, durante, después). 3. Reflexión y revisión.",
@@ -63,7 +66,6 @@ PROCESOS_DIDACTICOS = {
     "Ciencias Sociales": "1. Problematización. 2. Análisis de información. 3. Acuerdos / toma de decisiones.",
     "DPCC": "1. Problematización. 2. Análisis de información. 3. Acuerdos / toma de decisiones.",
     "Ciencia y Tecnología": "1. Problematización. 2. Diseño de estrategias. 3. Registro de datos. 4. Análisis. 5. Evaluación y comunicación.",
-    # Los demás se mantienen según estándar
     "Educación Física": "1. Motivación, exploración y calentamiento. 2. Desarrollo de la actividad central. 3. Vuelta a la calma y relajación.",
     "Arte y Cultura": "1. Desafío/Reto. 2. Exploración y experimentación. 3. Producción preliminar. 4. Revisión y afinamiento. 5. Presentación y reflexión.",
     "Educación Religiosa": "1. Ver. 2. Juzgar. 3. Actuar. 4. Revisar. 5. Celebrar.",
@@ -74,14 +76,9 @@ PROCESOS_DIDACTICOS = {
     "Tutoría": "1. Presentación. 2. Desarrollo. 3. Cierre."
 }
 
-# Procesos Pedagógicos Generales extraídos del documento
 PROCESOS_PEDAGOGICOS = [
-    "Motivación", 
-    "Saberes previos", 
-    "Problematización", 
-    "Propósito y organización", 
-    "Gestión y acompañamiento", 
-    "Evaluación"
+    "Motivación", "Saberes previos", "Problematización", 
+    "Propósito y organización", "Gestión y acompañamiento", "Evaluación"
 ]
 
 # --- CONEXIÓN SEGURA CON LA API ---
@@ -105,78 +102,67 @@ DATOS CLAVE DEL CNEB PARA ESTA ÁREA QUE DEBES APLICAR ESTRICTAMENTE:
 - Procesos Didácticos del Área: {procesos_area}
 - Procesos Pedagógicos (Generales): {procesos_pedagogicos_str}
 
-TU MISIÓN: El docente te dará información mínima (un tema y un contexto). TÚ DEBES desarrollar todo el documento con altísimo rigor académico, redactar la situación significativa completa promoviendo el razonamiento y pensamiento crítico, y deducir las Competencias, Capacidades y Desempeños del CNEB más pertinentes al grado.
+TU MISIÓN: El docente te dará información mínima. TÚ DEBES desarrollar todo el documento con altísimo rigor académico y calidad de IMPRENTA/EDITORIAL.
 
 REGLAS INQUEBRANTABLES DE FORMATO:
 1. Usa Markdown estándar (Títulos con ## y ###). No uses HTML.
-2. Construye TABLAS LIMPIAS usando solo `|` y `-`. NUNCA unas celdas, usa filas estándar.
+2. Construye TABLAS LIMPIAS usando solo `|` y `-`. NUNCA unas celdas.
 3. El lenguaje debe ser técnico-pedagógico peruano, motivador y orientado a la excelencia.
 """
 
     if tipo_doc == "Programación Anual":
         base += f"""
-ESTRUCTURA OBLIGATORIA (PROGRAMACIÓN ANUAL - PLANIFICACIÓN DE LARGO PLAZO):
+ESTRUCTURA OBLIGATORIA (PROGRAMACIÓN ANUAL):
 1. **Datos Informativos.**
-2. **Descripción General:** Escribe al menos 2 párrafos. Redacta cómo se trabajará bajo el enfoque del área ({enfoque_area}) y vincula las características de los estudiantes con la caracterización del contexto local proporcionado.
-3. **Propósitos de Aprendizaje:** TABLA con Competencias, Capacidades y Estándares de Aprendizaje (Alineados al nivel y área).
-4. **Organización de las Unidades Didácticas/Proyectos:** TABLA detallando Títulos de unidad, Situación Significativa resumida (basada en el problema local), Duración y Competencias a movilizar por bimestre/trimestre.
+2. **Descripción General.**
+3. **Propósitos de Aprendizaje:** TABLA con Competencias, Capacidades y Estándares.
+4. **Organización de las Unidades Didácticas/Proyectos:** TABLA.
 5. **Enfoques Transversales:** Priorizados en el año.
-6. **Estrategias Metodológicas y Recursos:** Alineados a los procesos didácticos: {procesos_area}.
-7. **Evaluación:** Diagnóstica, Formativa y Sumativa.
+6. **Estrategias Metodológicas y Recursos:**
+7. **Evaluación:**
 """
     elif tipo_doc == "Unidad Didáctica":
         base += f"""
-ESTRUCTURA OBLIGATORIA (UNIDAD DIDÁCTICA / EXPERIENCIA DE APRENDIZAJE - CORTO PLAZO):
+ESTRUCTURA OBLIGATORIA (UNIDAD DIDÁCTICA):
 1. **Datos Informativos.**
-2. **Situación Significativa:** Redacta una situación retadora de al menos 2 párrafos, anclada al contexto local dado. Debe promover el PENSAMIENTO CRÍTICO e INDAGACIÓN. Finaliza con un RETO (pregunta motivadora).
-3. **Propósitos y Evidencias:** TABLA MAESTRA con: Competencia, Capacidades, Desempeños precisados, Criterios de Evaluación, Evidencia de Aprendizaje, e Instrumento.
-4. **Secuencia de Sesiones:** TABLA con Número de Sesión, Título, y Breve descripción (mínimo 4 sesiones secuenciadas lógicamente para resolver el reto planteado).
+2. **Situación Significativa.**
+3. **Propósitos y Evidencias:** TABLA MAESTRA.
+4. **Secuencia de Sesiones:** TABLA.
 5. **Materiales y Recursos.**
 """
     elif tipo_doc == "Sesión de Aprendizaje":
         base += f"""
-ESTRUCTURA OBLIGATORIA ESTRICTA (SESIÓN DE APRENDIZAJE CNEB - CORTO PLAZO):
+ESTRUCTURA OBLIGATORIA ESTRICTA (SESIÓN DE APRENDIZAJE CNEB):
 **Sesión de Aprendizaje N° 01: [Escribe el título sugerido]**
 
 **I.- Datos Informativos:**
-(Nombre de Institución Educativa, Nivel, Grado, Sección, Área curricular, Nombre del docente, Duración, Fecha). Llena los datos con la información proporcionada y usa "___" para la sección y fecha si no se especifican.
+(Llenar con los datos dados)
 
 **II.- Propósitos de Aprendizaje y Evaluación:**
-TABLA con las siguientes columnas: Área | Competencia | Capacidad(es) | Desempeño precisado al grado | Evidencia de aprendizaje | Criterio de evaluación (¿Qué observaré?) | Instrumento de evaluación.
+TABLA: Área | Competencia | Capacidad(es) | Desempeño precisado | Evidencia | Criterio de evaluación | Instrumento.
 
 **III.- Enfoques Transversales:**
-TABLA o lista con: Enfoque | Valor o actitud que se promueve | Comportamiento observable durante la sesión.
+TABLA: Enfoque | Valor o actitud | Comportamiento observable.
 
 **IV.- Preparación de la Sesión:**
-Crea OBLIGATORIAMENTE una TABLA con dos columnas exactas: 
-| ¿Qué necesitamos hacer antes de la sesión? | ¿Qué recursos o materiales se utilizarán? |
+TABLA: | ¿Qué necesitamos hacer antes de la sesión? | ¿Qué recursos o materiales se utilizarán? |
 
 **V.- Secuencia Didáctica (BAJO EL ENFOQUE: {enfoque_area}):**
-Crea OBLIGATORIAMENTE una TABLA con tres columnas exactas:
-| Momentos | Estrategias / Actividades (DESCRIPCIÓN SÓLIDA Y PROFESIONAL) | Tiempo |
-- En la fila de INICIO: Explica detalladamente cómo se desarrollan los procesos pedagógicos de: **Motivación**, **Saberes previos**, **Problematización** y **Propósito y organización**. Evidencia la interacción docente-estudiante.
-- En la fila de DESARROLLO (PROCESO): Esta es la parte más importante. DEBES ESCRIBIR EN NEGRITA CADA UNO DE LOS SIGUIENTES PROCESOS DIDÁCTICOS DEL ÁREA: {procesos_area}. Para cada proceso, explica a detalle las acciones de **Gestión y acompañamiento** del docente (mediación) y las acciones de los estudiantes. Explica cómo se promueve el razonamiento, pensamiento crítico e indagación.
-- En la fila de CIERRE: Evidencia el proceso pedagógico de **Evaluación**. Explica a detalle la Evaluación formativa (cómo se comprueba el aprendizaje) y la Metacognición (incluye preguntas reflexivas específicas y retadoras que se harán a los estudiantes).
+TABLA: | Momentos | Estrategias / Actividades (DESCRIPCIÓN SÓLIDA) | Tiempo |
+- INICIO: Motivación, Saberes previos, Problematización, Propósito.
+- DESARROLLO: DEBES ESCRIBIR EN NEGRITA CADA PROCESO DIDÁCTICO: {procesos_area}. Detalla mediación y razonamiento.
+- CIERRE: Evaluación formativa y Metacognición.
 
 **Firmas:**
-(Añade este espacio exacto antes de pasar a los anexos para la validación del documento):
-
 _______________________________________
 Docente: [Escribe el nombre del docente]
-
 _______________________________________
 V° B° Director(a) / Sub Director(a)
 
-
-**VI.- Anexos:** (ESTA SECCIÓN VA ESTRICTAMENTE AL FINAL DESPUÉS DE LAS FIRMAS)
-- **Anexo N° 1: Instrumento de Evaluación:** Crea el instrumento real (ej: lista de cotejo o rúbrica) en formato TABLA PROFESIONAL, detallando los criterios de evaluación observados.
-- **Anexo N° 2: Ficha de Trabajo para el Estudiante (CALIDAD IMPRENTA/EDITORIAL):** Diseña una ficha de trabajo visualmente atractiva, estructurada y extremadamente profesional. Debe incluir OBLIGATORIAMENTE:
-  * Un encabezado formal para los datos del estudiante (Nombre, Grado, Fecha).
-  * Un título motivador para la ficha.
-  * Instrucciones claras y retadoras.
-  * Ejercicios, casos, problemas o preguntas de nivel cognitivo superior que promuevan directamente el pensamiento crítico (evita lo puramente memorístico), alineados al propósito de la sesión.
-  * Espacios designados de forma explícita para que el estudiante responda (usa líneas punteadas simuladas `.........................` o indicaciones de cuadros).
-  * La estructura debe ser tan impecable que parezca maquetada por un diseñador instruccional, lista para que el docente solo tenga que imprimirla.
+**VI.- Anexos:** - **Anexo N° 1: Instrumento de Evaluación:** TABLA PROFESIONAL.
+- **Anexo N° 2: Ficha de Trabajo para el Estudiante (CALIDAD IMPRENTA/EDITORIAL):** Diseña una ficha visualmente atractiva. 
+  * DEBES INCLUIR OBLIGATORIAMENTE ESTA ETIQUETA EXACTA donde deba ir una imagen ilustrativa atractiva acorde al nivel y tema: `[IMAGEN_SUGERIDA: descripción muy detallada de la imagen en inglés, estilo ilustración infantil o juvenil]`. Ejemplo: `[IMAGEN_SUGERIDA: cute 2d illustration of peruvian kids planting trees in the amazon, coloring book style, high quality]`. Nuestro sistema la reemplazará por una imagen real.
+  * Usa cuadros de texto simulados, líneas punteadas `.........................` y ejercicios de nivel cognitivo superior.
 """
     return base
 
@@ -192,7 +178,6 @@ st.markdown("""
     }
     .main { background-color: var(--light-bg); }
     
-    /* Header Container */
     .header-box {
         background: linear-gradient(135deg, var(--minedu-blue) 0%, #1e40af 100%);
         padding: 30px;
@@ -206,7 +191,6 @@ st.markdown("""
     .header-box h1 { color: white; font-size: 2.5rem; margin: 0; font-weight: 800;}
     .header-box p { color: #e2e8f0; font-size: 1.1rem; margin-top: 10px; }
     
-    /* Tabs Customization */
     .stTabs [data-baseweb="tab-list"] { gap: 10px; margin-bottom: 20px; }
     .stTabs [data-baseweb="tab"] {
         background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px 8px 0 0;
@@ -214,14 +198,12 @@ st.markdown("""
     }
     .stTabs [aria-selected="true"] { background-color: var(--minedu-red) !important; color: white !important; }
     
-    /* Cards */
     .section-container {
         background-color: #ffffff; padding: 25px; border-radius: 12px;
         box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px;
         border-left: 5px solid var(--minedu-blue);
     }
     
-    /* Buttons */
     .stButton>button {
         background: var(--minedu-blue); color: white; font-weight: bold;
         border-radius: 8px; border: none; transition: all 0.3s ease; width: 100%;
@@ -231,7 +213,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- FUNCIÓN PARA CARGAR LOGO LOCAL EN BASE64 ---
 def get_image_base64(image_path):
     try:
         with open(image_path, "rb") as img_file:
@@ -240,44 +221,104 @@ def get_image_base64(image_path):
     except FileNotFoundError:
         return "https://cdn-icons-png.flaticon.com/512/8066/8066104.png"
 
-# --- INICIALIZACIÓN DE ESTADO ---
 if 'resultados' not in st.session_state:
     st.session_state.resultados = {"anual": None, "unidad": None, "sesion": None}
 
-# --- FUNCIONES DE EXPORTACIÓN A WORD ---
+# --- FUNCIONES DE EXPORTACIÓN A WORD (CALIDAD IMPRENTA) ---
+
+def aplicar_fondo_celda(cell, color_hex):
+    """Aplica color de fondo a una celda de la tabla."""
+    tcPr = cell._tc.get_or_add_tcPr()
+    shd = parse_xml(f'<w:shd {nsdecls("w")} w:fill="{color_hex}"/>')
+    tcPr.append(shd)
+
 def construir_tabla_word(doc, matriz_datos):
     if not matriz_datos: return
     num_cols = max(len(fila) for fila in matriz_datos)
     table = doc.add_table(rows=len(matriz_datos), cols=num_cols)
     table.style = 'Table Grid'
+    table.autofit = True
+
     for i, fila in enumerate(matriz_datos):
         for j, celda in enumerate(fila):
             if j < num_cols:
                 cell = table.cell(i, j)
                 texto_limpio = celda.replace('**', '').replace('*', '')
                 cell.text = texto_limpio
+                
+                # Estilo de Imprenta para Cabeceras de Tabla
                 if i == 0:
+                    aplicar_fondo_celda(cell, "EAEAEA") # Gris claro tipo imprenta
                     for paragraph in cell.paragraphs:
-                        for run in paragraph.runs: run.font.bold = True
+                        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                        for run in paragraph.runs: 
+                            run.font.bold = True
+                            run.font.color.rgb = RGBColor(0, 51, 102) # Azul institucional
+                else:
+                    # Justificar contenido interno para mayor limpieza
+                    for paragraph in cell.paragraphs:
+                        paragraph.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
     doc.add_paragraph()
+
+def insertar_imagen_generada(doc, prompt_imagen):
+    """Descarga una imagen por IA generativa basada en el prompt y la inserta en el Word."""
+    try:
+        # Codificamos el texto para la URL, añadiendo contexto educativo y formato limpio
+        query = urllib.parse.quote(prompt_imagen + ", ultra high quality, clean white background, educational vector flat style")
+        url = f"https://image.pollinations.ai/prompt/{query}?width=600&height=400&nologo=true"
+        
+        response = requests.get(url, timeout=10)
+        if response.status_code == 200:
+            image_stream = io.BytesIO(response.content)
+            # Insertar imagen centrada
+            p = doc.add_paragraph()
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run = p.add_run()
+            run.add_picture(image_stream, width=Inches(4.5))
+            
+            # Pie de imagen
+            p_caption = doc.add_paragraph("Ilustración de la Ficha de Trabajo")
+            p_caption.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p_caption.runs[0].font.size = Pt(8)
+            p_caption.runs[0].font.italic = True
+    except Exception as e:
+        # Si falla, simplemente agregamos un marco referencial
+        doc.add_paragraph(f"[Espacio para Imagen: {prompt_imagen}]").alignment = WD_ALIGN_PARAGRAPH.CENTER
 
 def generar_word_pro(titulo, contenido, ie, dist, area, grado):
     doc = Document()
+    
+    # 1. Ajustes Editoriales: Márgenes de hoja
+    sections = doc.sections
+    for section in sections:
+        section.top_margin = Inches(0.8)
+        section.bottom_margin = Inches(0.8)
+        section.left_margin = Inches(0.8)
+        section.right_margin = Inches(0.8)
+
+    # 2. Configurar Fuentes Base (Calibri, estilo moderno)
     style = doc.styles['Normal']
-    style.font.name = 'Arial'
+    style.font.name = 'Calibri'
     style.font.size = Pt(11)
 
-    # Encabezado
+    # 3. Encabezado Institucional
     header = doc.sections[0].header
     p_header = header.paragraphs[0]
     p_header.text = f"SISTEMA EDUPLAN IA - UGEL LA CONVENCIÓN\nI.E. {ie} | Distrito: {dist}"
-    p_header.style.font.size = Pt(9)
+    p_header.style.font.size = Pt(8)
+    p_header.style.font.bold = True
     p_header.alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
-    titulo_doc = doc.add_heading(titulo, level=1)
+    # 4. Título Principal
+    titulo_doc = doc.add_heading(level=1)
+    run_titulo = titulo_doc.add_run(titulo)
+    run_titulo.font.name = 'Calibri'
+    run_titulo.font.size = Pt(16)
+    run_titulo.font.bold = True
+    run_titulo.font.color.rgb = RGBColor(0, 51, 102) # Azul Minedu
     titulo_doc.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-    # Tabla de Datos Informativos superior
+    # Tabla de Datos Informativos superior (Estilo limpio)
     table_info = doc.add_table(rows=2, cols=2)
     table_info.style = 'Table Grid'
     celdas_info = [
@@ -285,19 +326,25 @@ def generar_word_pro(titulo, contenido, ie, dist, area, grado):
         (1, 0, "DOCENTE:", LIDER), (1, 1, "AÑO LECTIVO:", str(ANIO_ACTUAL))
     ]
     for row, col, etiqueta, valor in celdas_info:
-        p = table_info.cell(row, col).paragraphs[0]
-        p.add_run(f"{etiqueta} ").bold = True
+        cell = table_info.cell(row, col)
+        aplicar_fondo_celda(cell, "F2F2F2") # Gris super claro
+        p = cell.paragraphs[0]
+        r1 = p.add_run(f"{etiqueta} ")
+        r1.bold = True
+        r1.font.color.rgb = RGBColor(0, 51, 102)
         p.add_run(valor)
 
     doc.add_paragraph("\n")
     
-    # Parser Simple de Markdown a Word
+    # Parser de Markdown a Word con Integración de Imágenes
     lineas = contenido.split('\n')
     tabla_actual = []
     
     for linea in lineas:
         linea = linea.strip()
         if not linea: continue
+        
+        # Detección de Tabla
         if linea.startswith('|') and linea.endswith('|'):
             filas = [celda.strip() for celda in linea.strip('|').split('|')]
             if all(all(c in '-: ' for c in celda) for celda in filas): continue
@@ -307,13 +354,47 @@ def generar_word_pro(titulo, contenido, ie, dist, area, grado):
                 construir_tabla_word(doc, tabla_actual)
                 tabla_actual = []
             
+            # Detección de Etiqueta de Imagen IA
+            if "[IMAGEN_SUGERIDA:" in linea:
+                match = re.search(r'\[IMAGEN_SUGERIDA:(.*?)\]', linea)
+                if match:
+                    prompt_img = match.group(1).strip()
+                    insertar_imagen_generada(doc, prompt_img)
+                continue # Evita imprimir el texto de la etiqueta
+            
             texto_limpio = linea.replace('**', '').replace('*', '')
-            if linea.startswith('### '): doc.add_heading(texto_limpio[4:], level=3)
-            elif linea.startswith('## '): doc.add_heading(texto_limpio[3:], level=2)
-            elif linea.startswith('# '): doc.add_heading(texto_limpio[2:], level=1)
-            elif linea.startswith('- '): doc.add_paragraph(texto_limpio[2:], style='List Bullet')
-            elif re.match(r'^\d+\.\s', linea): doc.add_paragraph(texto_limpio, style='List Number')
-            else: doc.add_paragraph(texto_limpio)
+            
+            # Títulos y Subtítulos Estilizados
+            if linea.startswith('### '): 
+                h = doc.add_heading(level=3)
+                r = h.add_run(texto_limpio[4:])
+                r.font.name = 'Calibri'
+                r.font.size = Pt(12)
+                r.font.bold = True
+                r.font.color.rgb = RGBColor(200, 16, 46) # Rojo Minedu
+            elif linea.startswith('## '): 
+                h = doc.add_heading(level=2)
+                r = h.add_run(texto_limpio[3:])
+                r.font.name = 'Calibri'
+                r.font.size = Pt(13)
+                r.font.bold = True
+                r.font.color.rgb = RGBColor(0, 51, 102) # Azul Minedu
+            elif linea.startswith('# '): 
+                h = doc.add_heading(level=1)
+                r = h.add_run(texto_limpio[2:])
+                r.font.name = 'Calibri'
+                r.font.size = Pt(15)
+                r.font.bold = True
+                h.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            elif linea.startswith('- '): 
+                p = doc.add_paragraph(texto_limpio[2:], style='List Bullet')
+                p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            elif re.match(r'^\d+\.\s', linea): 
+                p = doc.add_paragraph(texto_limpio, style='List Number')
+                p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            else: 
+                p = doc.add_paragraph(texto_limpio)
+                p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
                 
     if tabla_actual: construir_tabla_word(doc, tabla_actual)
 
@@ -340,7 +421,6 @@ def procesar_ia(payload, prompt_sistema):
         return f"⚠️ Error técnico: {str(e)}"
 
 # --- INTERFAZ PRINCIPAL ---
-
 logo_url = get_image_base64("logo.png")
 
 st.markdown(f"""
@@ -383,7 +463,6 @@ def render_generador(tipo_doc, tab_key):
     st.markdown('<div class="section-container">', unsafe_allow_html=True)
     st.subheader(f"📝 Opciones para: {tipo_doc}")
     
-    # FORMULARIO DINÁMICO PARA SESIÓN DE APRENDIZAJE
     if tipo_doc == "Sesión de Aprendizaje":
         with st.expander("🔍 Estructura Pedagógica (Lectura Automática del Sistema)", expanded=True):
             st.markdown(f"**🌱 Enfoque Transversal Aplicado (Obligatorio):** {enfoque_transversal}")
@@ -423,7 +502,6 @@ def render_generador(tipo_doc, tab_key):
             inst_eval = st.selectbox("Instrumento", ["Lista de Cotejo", "Rúbrica", "Ficha de Observación"], key=f"inst_{tab_key}")
             opciones_extra = f"\n- Adaptación NEE: {'Sí' if nee else 'No'}\n- Instrumento: {inst_eval}"
 
-    # Payload simplificado
     payload = f"""
 - Institución Educativa: {ie_nombre}
 - Docente: {LIDER}
@@ -441,25 +519,26 @@ def render_generador(tipo_doc, tab_key):
         else:
             with st.status(f"🤖 Estructurando bajo el enfoque de {ENFOQUES_AREAS.get(area_sel, '')}...", expanded=True) as status:
                 st.write("📖 Diseñando Situación Significativa con pensamiento crítico...")
-                st.write(f"⚙️ Estructurando procesos didácticos y pedagógicos...")
+                st.write(f"⚙️ Aplicando estilos de maquetación y buscando imágenes de apoyo...")
                 resultado = procesar_ia(payload, prompt_dinamico)
                 st.session_state.resultados[tab_key] = (resultado, titulo_doc)
                 status.update(label="¡Documento CNEB Generado!", state="complete", expanded=False)
 
-    # Mostrar Resultados y Descargar
     if st.session_state.resultados[tab_key]:
         resultado_actual, titulo_guardado = st.session_state.resultados[tab_key]
         
         st.divider()
         st.markdown(f"### 📋 Vista Previa")
         with st.container(height=450, border=True):
-            st.markdown(resultado_actual) 
+            # Limpiamos visualmente la etiqueta de imagen en la vista web
+            vista_web = re.sub(r'\[IMAGEN_SUGERIDA:.*?\]', '*(Aquí se insertará automáticamente una imagen ilustrativa en el documento Word)*', resultado_actual)
+            st.markdown(vista_web) 
         
         st.divider()
         file_word = generar_word_pro(f"{tipo_doc.upper()}: {titulo_guardado}", resultado_actual, ie_nombre, distrito_sel, area_sel, grado_sel)
         
         st.download_button(
-            label="📥 EXPORTAR A MICROSOFT WORD (.DOCX)", 
+            label="📥 EXPORTAR A MICROSOFT WORD (.DOCX) - CALIDAD IMPRENTA", 
             data=file_word, 
             file_name=f"{tipo_doc.replace(' ', '_')}_{grado_sel}_{area_sel}.docx", 
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
