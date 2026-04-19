@@ -594,9 +594,10 @@ def render_generador(tipo_doc, tab_key):
     opciones_extra = ""
     if tipo_doc == "Sesión de Aprendizaje":
         with st.expander("Ajustes Extra (Opcional)", expanded=False):
+            tiempo_sesion = st.number_input("⏳ Tiempo de la sesión (minutos)", min_value=15, max_value=300, value=90, step=15, key=f"tiempo_{tab_key}")
             nee = st.toggle("Sugerencias para Inclusión (NEE)", key=f"nee_{tab_key}")
             inst_eval = st.selectbox("Instrumento", ["Lista de Cotejo", "Rúbrica", "Ficha de Observación"], key=f"inst_{tab_key}")
-            opciones_extra = f"\n- Adaptación NEE: {'Sí' if nee else 'No'}\n- Instrumento: {inst_eval}"
+            opciones_extra = f"\n- Duración de la sesión: {tiempo_sesion} minutos\n- Adaptación NEE: {'Sí' if nee else 'No'}\n- Instrumento: {inst_eval}"
 
     payload = f"""
 - Institución Educativa: {ie_nombre}
