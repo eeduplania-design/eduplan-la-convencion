@@ -1,14 +1,4 @@
-streamlit==1.32.0
-zhipuai==2.0.1
-python-docx==1.1.0
-requests==2.31.0
-
-**Para ejecutar en local:**
-1. Abre tu terminal.
-2. Instala las dependencias: `pip install -r requirements.txt`
-3. Ejecuta la aplicación: `streamlit run app.py`
-
-### Principales mejoras técnicas implementadas:
-1. **Generador de DOCX Robusto:** La función `markdown_to_docx` reemplaza por completo la lógica básica. Ahora detecta automáticamente las tablas creadas por la IA, les da colores institucionales, parsea las negritas y establece los márgenes en A4 normal.
-2. **Imágenes Automatizadas:** Implementé una conexión a `Pollinations.ai`. Si la IA sugiere una imagen para la ficha de trabajo del estudiante usando el tag `[IMAGEN_SUGERIDA: ... ]`, el servidor descargará una ilustración vectorial educativa e la insertará directamente centrada en el documento de Word.
-3. **Manejo de Estado (`st.session_state`):** Al descargar el Word en Streamlit, la página suele recargarse, borrando la generación de la IA. Utilizando los estados de sesión, el texto generado se mantiene hasta que hagas una nueva petición.
+streamlit
+zhipuai
+python-docx
+requests
