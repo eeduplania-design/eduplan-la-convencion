@@ -239,9 +239,12 @@ TABLA: | Enfoque Transversal | Valor | Actitudes o acciones observables (adaptad
 TABLA: | ¿Qué se debe hacer antes de la sesión? | ¿Qué recursos o materiales se utilizarán en la sesión? |
 
 **6. MOMENTOS DE LA SESIÓN:**
-- **INICIO (Tiempo aproximado):** Saludo y normas de convivencia. Motivación y Saberes previos. Problematización (Conflicto cognitivo). **MUY IMPORTANTE:** Declara explícitamente a los estudiantes el **PROPÓSITO** de la clase y los **CRITERIOS DE EVALUACIÓN** en este momento.
-- **DESARROLLO (Tiempo aproximado):** DEBES ESCRIBIR EN NEGRITA CADA PROCESO DIDÁCTICO DEL ÁREA ({procesos_area}). Ejemplo para Comunicación: **Antes de la lectura**, **Durante la lectura**, **Después de la lectura**. Detalla minuciosamente la gestión, el acompañamiento docente y la actividad del estudiante.
-- **CIERRE (Tiempo aproximado):** Evaluación formativa. Metacognición con preguntas claras (¿Qué aprendimos?, ¿Cómo lo hicimos?, ¿Para qué sirve?, ¿Qué dificultades tuvimos?).
+OBLIGATORIO: DEBES CREAR UNA TABLA ESTRUCTURADA DE 3 COLUMNAS PARA ESTA SECCIÓN CON EL SIGUIENTE FORMATO EXACTO:
+| MOMENTOS | ESTRATEGIAS Y ACTIVIDADES | TIEMPO |
+|---|---|---|
+| **INICIO** | Saludo y normas de convivencia. Motivación y Saberes previos. Problematización (Conflicto cognitivo). **MUY IMPORTANTE:** Declara explícitamente a los estudiantes el **PROPÓSITO** de la clase y los **CRITERIOS DE EVALUACIÓN** en este momento. | [Aprox] |
+| **DESARROLLO** | **PROCESOS DIDÁCTICOS DEL ÁREA:** ({procesos_area}). Escribe en negrita cada proceso didáctico. Detalla minuciosamente la gestión, el acompañamiento docente y la actividad del estudiante. | [Aprox] |
+| **CIERRE** | Evaluación formativa. Metacognición con preguntas claras (¿Qué aprendimos?, ¿Cómo lo hicimos?, ¿Para qué sirve?, ¿Qué dificultades tuvimos?). | [Aprox] |
 
 **7. REFLEXIONES DEL APRENDIZAJE:**
 (Deja estos espacios en blanco con líneas punteadas para que el docente los llene después de dictar la clase)
@@ -340,7 +343,12 @@ def construir_tabla_word(doc, matriz_datos):
             if j < num_cols:
                 cell = table.cell(i, j)
                 texto_limpio = celda.replace('**', '').replace('*', '')
-                cell.text = texto_limpio
+                
+                # REQUERIMIENTO CUBIERTO: Detectar y cambiar etiquetas <br>, <br/> o <br > por verdaderos saltos de línea en Word.
+                texto_limpio = re.sub(r'<br\s*/?>', '\n', texto_limpio, flags=re.IGNORECASE)
+                
+                # Asignar el texto a la celda limpiando espacios iniciales o finales innecesarios
+                cell.text = texto_limpio.strip()
                 
                 # Estilo de Imprenta para Cabeceras de Tabla
                 if i == 0:
