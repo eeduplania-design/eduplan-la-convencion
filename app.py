@@ -1,592 +1,462 @@
-import streamlit as st
-from zhipuai import ZhipuAI
-from docx import Document
-from docx.shared import Pt, Inches, RGBColor
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.oxml.ns import nsdecls
-from docx.oxml import parse_xml
-import io
-import re
-import datetime
-import base64
+import logging
 import os
-import requests
-import urllib.parse
+import re
+from datetime import datetime
+from io import BytesIO
+from typing import List, Optional, Tuple
 
-# --- CONFIGURACIÓN DE IDENTIDAD Y DATOS MAESTROS ---
-NOMBRE_APP = "EDUPLAN IA - LA CONVENCIÓN"
-LIDER = "PIP Prof. Percy Tapia A"
-ANIO_ACTUAL = datetime.datetime.now().year
+import streamlit as st
+from docx import Document
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml import parse_xml
+from docx.oxml.ns import nsdecls
+from docx.shared import Inches, Pt, RGBColor
+from dotenv import load_dotenv
+from zhipuai import ZhipuAI
+from zhipuai.core._errors import ZhipuAIError
 
-DISTRICTS = [
-    "Santa Ana", "Echarati", "Huayopata", "Maranura", "Santa Teresa", 
-    "Vilcabamba", "Quellouno", "Pichari", "Kimbiri", "Inkawasi", 
-    "Villa Virgen", "Villa Kintiarina", "Ocobamba"
-]
-ENFOQUES_TRANSVERSALES = [
-    "De derechos", "Inclusivo o de Atención a la diversidad", 
-    "Intercultural", "Igualdad de género", "Ambiental", 
-    "Orientación al bien común", "Búsqueda de la Excelencia"
-]
+# ==========================================
+# 1. CONFIGURACIÓN Y LOGGING PARA PRODUCCIÓN
+# ==========================================
 
-CONTEXTOS_LOCALES = [
-    "Cosecha agrícola (Café, Cacao, Cítricos)",
-    "Fenómenos climatológicos (Lluvias intensas, huaycos)",
-    "Prevención de enfermedades endémicas (Dengue, Malaria)",
-    "Aniversario de la Institución o Distrito",
-    "Prácticas culturales y saberes locales (Machiguenga, andino-amazónico)",
-    "Contaminación ambiental y cuidado del agua",
-    "Alimentación saludable frente a la anemia local",
-    "Uso inadecuado de tecnología y redes sociales",
-    "Otro contexto (Especificar brevemente)"
-]
+# Cargar variables de entorno (desarrollo local)
+load_dotenv()
 
-# --- DICCIONARIOS MINEDU: ENFOQUES Y PROCESOS DIDÁCTICOS ---
-ENFOQUES_AREAS = {
-    "Matemática": "Resolución de problemas",
-    "Comunicación": "Comunicativo (Textual e intertextual)",
-    "Personal Social": "Desarrollo personal y Ciudadanía activa",
-    "Ciencias Sociales": "Ciudadanía activa",
-    "DPCC": "Desarrollo personal y Ciudadanía activa",
-    "Ciencia y Tecnología": "Indagación científica y Alfabetización científica y tecnológica",
-    "Educación Física": "Corporeidad",
-    "Arte y Cultura": "Multicultural e Interdisciplinario",
-    "Educación Religiosa": "Cristocéntrico y Comunitario",
-    "Inglés": "Comunicativo",
-    "EPT": "Emprendimiento",
-    "Tutoría": "Orientación Educativa",
-    "Psicomotriz": "Corporeidad",
-    "Descubrimiento del Mundo": "Indagación científica"
-}
+# Configuración de Logging Estructurado
+logging.basicConfig(
+    level=os.getenv("LOG_LEVEL", "INFO"),
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler()]
+)
+logger = logging.getLogger(__name__)
 
-PROCESOS_DIDACTICOS = {
-    "Matemática": "1. Comprensión del problema. 2. Búsqueda de estrategias. 3. Representación (concreto → simbólico). 4. Formalización. 5. Reflexión y transferencia.",
-    "Comunicación": "1. Antes de la lectura/texto. 2. Durante la lectura/producción. 3. Después de la lectura/revisión.",
-    "Personal Social": "1. Problematización. 2. Análisis de información. 3. Acuerdos / Toma de decisiones.",
-    "Ciencias Sociales": "1. Problematización. 2. Análisis de información. 3. Acuerdos / Toma de decisiones.",
-    "DPCC": "1. Problematización. 2. Análisis de información. 3. Acuerdos / Toma de decisiones.",
-    "Ciencia y Tecnología": "1. Planteamiento del problema. 2. Planteamiento de hipótesis. 3. Elaboración del plan de acción. 4. Recojo de datos y análisis de resultados. 5. Estructuración del saber construido. 6. Evaluación y comunicación.",
-    "Educación Física": "1. Motivación, exploración y calentamiento. 2. Desarrollo de la actividad central. 3. Vuelta a la calma y relajación.",
-    "Arte y Cultura": "1. Desafío/Reto. 2. Exploración y experimentación. 3. Producción preliminar. 4. Revisión y afinamiento. 5. Presentación y reflexión.",
-    "Educación Religiosa": "1. Ver. 2. Juzgar. 3. Actuar. 4. Revisar. 5. Celebrar.",
-    "Inglés": "1. Pre-task (Motivación/Input). 2. Task cycle (Ejecución). 3. Language focus (Análisis/Reflexión).",
-    "EPT": "1. Crear/Diseñar (Design Thinking). 2. Planificar. 3. Ejecutar. 4. Evaluar.",
-    "Psicomotriz": "1. Asamblea. 2. Expresividad motriz. 3. Relajación. 4. Expresión gráfico-plástica. 5. Cierre.",
-    "Descubrimiento del Mundo": "1. Observación. 2. Planteamiento de preguntas. 3. Exploración. 4. Comunicación.",
-    "Tutoría": "1. Presentación. 2. Desarrollo. 3. Cierre."
-}
+# ==========================================
+# 2. CONSTANTES Y DATOS MAESTROS (CACHED)
+# ==========================================
 
-PROCESOS_PEDAGOGICOS = [
-    "Motivación", "Saberes previos", "Problematización", 
-    "Propósito y organización", "Gestión y acompañamiento", "Evaluación"
-]
-
-# --- MATRIZ DE COMPETENCIAS Y CAPACIDADES CNEB ---
-MATRIZ_COMPETENCIAS = {
-    "Personal Social": "Competencia: Construye su identidad. Capacidades: Se valora a sí mismo / Autorregula sus emociones / Reflexiona y argumenta éticamente / Vive su sexualidad de manera integral.\nCompetencia: Se desenvuelve de manera autónoma a través de su motricidad.\nCompetencia: Asume una vida saludable.\nCompetencia: Interactúa a través de sus habilidades sociomotrices.\nCompetencia: Convive y participa democráticamente en la búsqueda del bien común. Capacidades: Interactúa con todas las personas / Construye normas y asume acuerdos / Maneja conflictos / Delibera sobre asuntos públicos / Participa en acciones que promueven el bienestar común.\nCompetencia: Construye interpretaciones históricas.\nCompetencia: Gestiona responsablemente el espacio y el ambiente.\nCompetencia: Gestiona responsablemente los recursos económicos.",
-    "DPCC": "Competencia: Construye su identidad. Capacidades: Se valora a sí mismo / Autorregula sus emociones / Reflexiona y argumenta éticamente / Vive su sexualidad de manera integral.\nCompetencia: Convive y participa democráticamente en la búsqueda del bien común. Capacidades: Interactúa con todas las personas / Construye normas y asume acuerdos / Maneja conflictos / Delibera sobre asuntos públicos / Participa en acciones que promueven el bienestar común.",
-    "Ciencias Sociales": "Competencia: Construye interpretaciones históricas.\nCompetencia: Gestiona responsablemente el espacio y el ambiente.\nCompetencia: Gestiona responsablemente los recursos económicos.",
-    "Comunicación": "Competencia: Se comunica oralmente en su lengua materna. Capacidades: Obtiene información del texto oral / Infiere e interpreta información / Adecúa, organiza y desarrolla las ideas / Utiliza recursos no verbales / Interactúa estratégicamente / Reflexiona y evalúa.\nCompetencia: Lee diversos tipos de textos escritos en su lengua materna. Capacidades: Obtiene información del texto escrito / Infiere e interpreta información / Reflexiona y evalúa la forma, el contenido y contexto.\nCompetencia: Escribe diversos tipos de textos en su lengua materna. Capacidades: Adecúa el texto a la situación comunicativa / Organiza y desarrolla las ideas de forma coherente / Utiliza convenciones del lenguaje escrito / Reflexiona y evalúa.",
-    "Inglés": "Competencia: Se comunica oralmente en inglés. Capacidades: Obtiene información del texto oral / Infiere e interpreta información / Adecúa, organiza y desarrolla las ideas / Utiliza recursos no verbales / Interactúa estratégicamente / Reflexiona y evalúa.\nCompetencia: Lee diversos tipos de textos escritos en inglés. Capacidades: Obtiene información del texto escrito / Infiere e interpreta información / Reflexiona y evalúa la forma, el contenido y contexto.\nCompetencia: Escribe diversos tipos de textos en inglés. Capacidades: Adecúa el texto a la situación comunicativa / Organiza y desarrolla las ideas de forma coherente / Utiliza convenciones del lenguaje escrito / Reflexiona y evalúa.",
-    "Arte y Cultura": "Competencia: Aprecia de manera crítica manifestaciones artístico-culturales.\nCompetencia: Crea proyectos desde los lenguajes artísticos. Capacidades: Explora y experimenta los lenguajes del arte / Aplica procesos creativos / Evalúa y comunica sus procesos y proyectos.",
-    "Matemática": "Competencia: Resuelve problemas de cantidad. Capacidades: Traduce cantidades a expresiones numéricas / Comunica su comprensión sobre los números / Usa estrategias y procedimientos de estimación / Argumenta afirmaciones.\nCompetencia: Resuelve problemas de regularidad, equivalencia y cambio.\nCompetencia: Resuelve problemas de forma, movimiento y localización.\nCompetencia: Resuelve problemas de gestión de datos e incertidumbre.",
-    "Ciencia y Tecnología": "Competencia: Indaga mediante métodos científicos para construir sus conocimientos. Capacidades: Problematiza situaciones / Diseña estrategias para hacer indagación / Genera y registra datos o información / Analiza datos e información / Evalúa y comunica.\nCompetencia: Explica el mundo físico basándose en conocimientos sobre los seres vivos, materia y energía, biodiversidad, Tierra y universo.\nCompetencia: Diseña y construye soluciones tecnológicas para resolver problemas de su entorno.",
-    "Educación Religiosa": "Competencia: Construye su identidad como persona humana, amada por Dios, digna, libre y trascendente.\nCompetencia: Asume la experiencia el encuentro personal y comunitario con Dios en su proyecto de vida.",
-    "EPT": "Competencia: Gestiona proyectos de emprendimiento económico o social. Capacidades: Crea propuestas de valor / Aplica habilidades técnicas / Trabaja cooperativamente para lograr objetivos / Evalúa los resultados del proyecto.",
-    "Descubrimiento del Mundo": "Competencia: Indaga mediante métodos científicos para construir sus conocimientos. Capacidades: Problematiza situaciones / Diseña estrategias para hacer indagación / Genera y registra datos o información / Analiza datos e información / Evalúa y comunica.",
-    "Psicomotriz": "Competencia: Se desenvuelve de manera autónoma a través de su motricidad. Capacidades: Comprende su cuerpo / Se expresa corporalmente.",
-    "Educación Física": "Competencia: Se desenvuelve de manera autónoma a través de su motricidad.\nCompetencia: Asume una vida saludable.\nCompetencia: Interactúa a través de sus habilidades sociomotrices.",
-    "Tutoría": "Dimensión: Desarrollo personal / Desarrollo de los aprendizajes / Desarrollo social comunitario."
-}
-
-COMPETENCIAS_TRANSVERSALES = """Competencia: Se desenvuelve en los entornos virtuales generados por las TIC. Capacidades: Personaliza entornos virtuales / Gestiona información del entorno virtual / Interactúa en entornos virtuales / Crea objetos virtuales en diversos formatos.
-Competencia: Gestiona su aprendizaje de manera autónoma. Capacidades: Define metas de aprendizaje / Organiza acciones estratégicas para alcanzar sus metas / Monitorea y ajusta su desempeño."""
-
-# --- PROGRESIÓN DE ESTÁNDARES POR CICLO (REFERENCIA CNEB) ---
-def obtener_ciclo(nivel, grado):
-    if nivel == "Inicial": return "Ciclo II"
-    if nivel == "Primaria":
-        if grado in ["1ro", "2do"]: return "Ciclo III"
-        if grado in ["3ro", "4to"]: return "Ciclo IV"
-        if grado in ["5to", "6to"]: return "Ciclo V"
-    if nivel == "Secundaria":
-        if grado in ["1ro", "2do"]: return "Ciclo VI"
-        if grado in ["3ro", "4to", "5to"]: return "Ciclo VII"
-    return "Ciclo no definido"
-
-ESTANDARES_LECTURA_CNEB = {
-    "Ciclo II": "Lee diversos tipos de textos que tratan temas reales o imaginarios que le son cotidianos, en los que predominan palabras conocidas y que se acompañan con ilustraciones. Construye hipótesis o predicciones sobre la información contenida en los textos...",
-    "Ciclo III": "Lee diversos tipos de textos de estructura simple en los que predominan palabras conocidas e ilustraciones que apoyan las ideas centrales. Obtiene información poco evidente distinguiéndola de otra semejante y realiza inferencias locales a partir de información explícita...",
-    "Ciclo IV": "Lee diversos tipos de textos que presentan estructura simple con algunos elementos complejos y con vocabulario variado. Obtiene información poco evidente distinguiéndola de otras próximas y semejantes. Realiza inferencias locales a partir de información explícita e implícita...",
-    "Ciclo V": "Lee diversos tipos de textos con varios elementos complejos en su estructura y con vocabulario variado. Obtiene información e integra datos que están en distintas partes del texto. Realiza inferencias locales a partir de información explícita e implícita...",
-    "Ciclo VI": "Lee diversos tipos de texto con estructuras complejas y vocabulario variado. Integra información contrapuesta que está en distintas partes del texto. Interpreta el texto considerando información relevante y complementaria para construir su sentido global...",
-    "Ciclo VII": "Lee diversos tipos de texto con estructuras complejas y vocabulario variado. Integra información contrapuesta que está en distintas partes del texto. Interpreta el texto considerando información relevante y de detalle para construir su sentido global..."
-}
-
-CALENDARIO_MINEDU = """CALENDARIZACIÓN ESCOLAR MINEDU (REFERENCIAL 36 SEMANAS LECTIVAS Y 4 DE GESTIÓN):
-- Primer bloque de semanas de gestión: 2 semanas (Inicio de marzo).
-- Primer bloque de semanas lectivas (I Bimestre): 9 semanas (Aprox. Marzo a Mayo).
-- Segundo bloque de semanas lectivas (II Bimestre): 9 semanas (Aprox. Mayo a Julio).
-- Segundo bloque de semanas de gestión (Vacaciones de estudiantes): 2 semanas (Fines de Julio / Inicios de Agosto).
-- Tercer bloque de semanas lectivas (III Bimestre): 9 semanas (Aprox. Agosto a Octubre).
-- Cuarto bloque de semanas lectivas (IV Bimestre): 9 semanas (Aprox. Octubre a Diciembre).
-- Tercer bloque de semanas de gestión: 1 a 2 semanas (Fines de Diciembre)."""
-
-ESQUEMA_EDA_MINEDU = """ESTRUCTURA OFICIAL DE LA EXPERIENCIA DE APRENDIZAJE (EdA):
-1. Planteamiento de la situación.
-2. Propósito de aprendizaje.
-3. Enfoques transversales.
-4. Producciones / actuaciones.
-5. Criterios de evaluación e Instrumentos.
-6. Secuencia de actividades sugeridas (Ruta en 3 fases: 1. Planteamos la situación -> 2. Desarrollamos las competencias -> 3. Evaluación y comunicación del producto o resultados)."""
-
-# --- CONEXIÓN SEGURA CON LA API ---
-try:
-    api_key = st.secrets.get("ZHIPU_KEY", "TU_API_KEY_AQUI_SI_NO_USAS_SECRETS")
-    client = ZhipuAI(api_key=api_key)
-except Exception:
-    client = None
-
-# --- MOTOR DE PROMPTS CNEB ---
-def obtener_prompt_cneb(tipo_doc, area, nivel, grado):
-    ciclo = obtener_ciclo(nivel, grado)
-    enfoque_area = ENFOQUES_AREAS.get(area, "Enfoque por competencias")
-    procesos_area = PROCESOS_DIDACTICOS.get(area, "1. Inicio, 2. Desarrollo, 3. Cierre")
-    procesos_pedagogicos_str = ", ".join(PROCESOS_PEDAGOGICOS)
-    competencias_capacidades_area = MATRIZ_COMPETENCIAS.get(area, "Competencias y capacidades del área.")
-
-    info_estandar_extra = ""
-    if area == "Comunicación":
-        estandar_ciclo = ESTANDARES_LECTURA_CNEB.get(ciclo, "")
-        info_estandar_extra = f"\n- ESTÁNDAR DE APRENDIZAJE REFERENCIAL ({ciclo}): {estandar_ciclo}"
-
-    base = f"""Eres "EDUPLAN IA", un Especialista Senior y Mentor Pedagógico del MINEDU con más de 20 años de experiencia en la Educación Básica Regular del Perú.
-Tu misión es redactar un/una '{tipo_doc}' de nivel profesional superior, listo para impresión, para el área de {area} enfocado específicamente en estudiantes del nivel {nivel} ({ciclo}).
-
-BASE NORMATIVA Y DOCUMENTAL ESTRICTA QUE DEBES APLICAR:
-1. Currículo Nacional de la Educación Básica (CNEB).
-2. Programa Curricular de Educación {nivel} (Utiliza las competencias, capacidades y estándares correspondientes a la edad/ciclo de los estudiantes de {nivel} y del {ciclo}).
-3. RVM N° 094-2020-MINEDU (Obligatorio aplicar la Evaluación Formativa: formulación de criterios de evaluación, evidencias pertinentes e instrumentos claros).
-
-DATOS CLAVE DEL CNEB PARA ESTA ÁREA QUE DEBES APLICAR ESTRICTAMENTE:
-- Nivel y Ciclo: {nivel} - {ciclo}
-- Enfoque del Área: {enfoque_area}
-- Procesos Didácticos del Área: {procesos_area}
-- Procesos Pedagógicos (Generales): {procesos_pedagogicos_str}
-- MATRIZ DE COMPETENCIAS Y CAPACIDADES DEL ÁREA:
-{competencias_capacidades_area}
-- COMPETENCIAS TRANSVERSALES:
-{COMPETENCIAS_TRANSVERSALES}{info_estandar_extra}
-
-TU MISIÓN: Desarrollar todo el documento con altísimo rigor académico y pertinencia para el nivel {nivel}.
-
-REGLAS INQUEBRANTABLES DE FORMATO:
-1. Usa Markdown estándar (Títulos con ## y ###). No uses HTML ni etiquetas <br>.
-2. Construye TABLAS LIMPIAS usando solo `|` y `-`. NUNCA unas celdas.
-3. El lenguaje debe ser técnico-pedagógico peruano.
-"""
-
-    if tipo_doc == "Programación Anual":
-        base += f"""
-ESTRUCTURA OBLIGATORIA (PROGRAMACIÓN ANUAL - NIVEL {nivel.upper()}):
-1. **DATOS INFORMATIVOS.**
-2. **DESCRIPCIÓN GENERAL:** Describe brevemente el contexto y las características de los estudiantes de {nivel}.
-3. **PROPÓSITOS DE APRENDIZAJE:** TABLA con Competencias, Capacidades y Estándares precisos para el ciclo correspondiente de {nivel}.
-4. **ORGANIZACIÓN DE LAS UNIDADES DIDÁCTICAS/PROYECTOS:** TABLA organizada por bimestres/trimestres con Título, Situación Significativa, Duración y Productos.
-5. **ENFOQUES TRANSVERSALES:** Priorizados en el año.
-6. **ESTRATEGIAS METODOLÓGICAS Y RECURSOS:** Específicos para el aprendizaje en {nivel}.
-7. **EVALUACIÓN:** Según RVM 094-2020 (Diagnóstica, formativa y sumativa).
-"""
-    elif tipo_doc == "Unidad Didáctica":
-        base += f"""
-ESTRUCTURA OBLIGATORIA (UNIDAD DIDÁCTICA / EXPERIENCIA DE APRENDIZAJE - NIVEL {nivel.upper()}):
-1. **DATOS INFORMATIVOS.**
-2. **PLANTEAMIENTO DE LA SITUACIÓN:** Debe contener un Contexto altamente descriptivo, un Problema y el Reto.
-3. **PROPÓSITOS DE APRENDIZAJE Y ENFOQUES TRANSVERSALES:** TABLA.
-4. **PRODUCCIONES / ACTUACIONES Y CRITERIOS DE EVALUACIÓN:** Producto final esperado, evidencias, criterios e instrumentos.
-5. **SECUENCIA DE ACTIVIDADES SUGERIDAS:** TABLA resumen en 3 fases.
-6. **MATERIALES Y RECURSOS.**
-"""
-    elif tipo_doc == "Sesión de Aprendizaje":
-        # SOLUCIÓN PROBLEMA 2: Se instruye para que Momentos de la Sesión sea estrictamente una tabla y sin etiquetas br.
-        base += f"""
-ESTRUCTURA OBLIGATORIA ESTRICTA (BASADO EN MODELO OFICIAL CNEB - NIVEL {nivel.upper()}):
-
-**SESIÓN DE APRENDIZAJE N° [Asigna un número]: [Escribe el título sugerido]**
-
-**1. DATOS INFORMATIVOS:**
-(Llenar con los datos provistos: I.E., Docente, Grado, Área, Fecha, Duración)
-
-**2. TÍTULO DE LA ACTIVIDAD:**
-[Repetir el Título]
-
-**3. PROPÓSITOS Y EVIDENCIAS DE APRENDIZAJE:**
-TABLA: | Competencias / Capacidades | Desempeños precisados ({nivel}) | Evidencias de aprendizaje | Criterios de evaluación | Instrumento de evaluación |
-
-**4. ENFOQUE TRANSVERSAL:**
-TABLA: | Enfoque Transversal | Valor | Actitudes o acciones observables (adaptado a {nivel}) |
-
-**5. PREPARACIÓN DE LA SESIÓN:**
-TABLA: | ¿Qué se debe hacer antes de la sesión? | ¿Qué recursos o materiales se utilizarán en la sesión? |
-
-**6. MOMENTOS DE LA SESIÓN:**
-OBLIGATORIO: ESTA SECCIÓN DEBE SER ESTRICTAMENTE UNA TABLA. PROHIBIDO USAR LISTAS Y PROHIBIDO USAR ETIQUETAS HTML COMO <br> o {{br}}. Usa saltos de línea normales o simplemente separa las ideas con puntos.
-TABLA: | Momentos | Estrategias / Actividades (Detallar procesos didácticos en negrita) | Tiempo |
-| **INICIO** | Saludo y normas. Motivación y saberes previos. Problematización. Declarar el PROPÓSITO y CRITERIOS de la clase. | [X] min |
-| **DESARROLLO** | Desarrollar minuciosamente los procesos didácticos: {procesos_area}. Detallar gestión y acompañamiento. | [X] min |
-| **CIERRE** | Evaluación formativa. Metacognición con preguntas claras. | [X] min |
-
-**7. REFLEXIONES DEL APRENDIZAJE:**
-(Deja estos espacios en blanco con líneas punteadas)
-- ¿Qué avances tuvieron mis estudiantes? ..............................................................
-- ¿Qué dificultades tuvieron mis estudiantes? ..........................................................
-- ¿Qué aprendizajes debo reforzar en la siguiente sesión? ..............................................
-- ¿Qué actividades y estrategias funcionaron? ..................................
-
-**Firma:**
-_______________________________________                 _______________________________________
-V° B° Director(a) / Sub Director(a)                     Docente: [Escribe el nombre del docente]
-
-**8. ANEXOS:**
-- **Anexo N° 1: Instrumento de Evaluación:** TABLA PROFESIONAL (Lista de cotejo o Rúbrica).
-- **Anexo N° 2: Ficha de Aplicación / Trabajo para el Estudiante:** * Diseña una ficha visualmente atractiva exclusiva para {nivel}. 
-  * INCLUIR ESTA ETIQUETA EXACTA: `[IMAGEN_SUGERIDA: descripción detallada en inglés, estilo flat vectorial educativo]`.
-"""
-    return base
-
-# --- ESTILOS UX/UI INSTITUCIONALES ---
-st.set_page_config(page_title=NOMBRE_APP, layout="wide", page_icon="🇵🇪")
-
-st.markdown("""
-    <style>
-    :root {
-        --minedu-red: #C8102E;
-        --minedu-blue: #003366;
-        --light-bg: #F4F6F9;
+@st.cache_data
+def get_master_data() -> dict:
+    """
+    Retorna los datos maestros cacheados para optimizar rendimiento.
+    Previene la reasignación de memoria en cada recarga de Streamlit.
+    """
+    return {
+        "NOMBRE_APP": "EDUPLAN IA - LA CONVENCIÓN",
+        "LIDER": "PIP Prof. Percy Tapia A",
+        "ANIO_ACTUAL": datetime.now().year,
+        "DISTRICTS": [
+            "Santa Ana", "Echarati", "Huayopata", "Maranura", "Santa Teresa", 
+            "Vilcabamba", "Quellouno", "Pichari", "Kimbiri", "Inkawasi", 
+            "Villa Virgen", "Villa Kintiarina", "Ocobamba"
+        ],
+        "ENFOQUES_TRANSVERSALES": [
+            "De derechos", "Inclusivo o de Atención a la diversidad", 
+            "Intercultural", "Igualdad de género", "Ambiental", 
+            "Orientación al bien común", "Búsqueda de la Excelencia"
+        ],
+        "CONTEXTOS_LOCALES": [
+            "Cosecha agrícola (Café, Cacao, Cítricos)",
+            "Fenómenos climatológicos (Lluvias intensas, friaje)",
+            "Festividades locales y aniversarios",
+            "Problemática ambiental local",
+            "Costumbres y tradiciones culturales"
+        ],
+        "NIVELES": ["Inicial", "Primaria", "Secundaria"],
+        "AREAS_PRIMARIA_SECUNDARIA": [
+            "Matemática", "Comunicación", "Ciencia y Tecnología", 
+            "Personal Social / Ciencias Sociales", "Desarrollo Personal, Ciudadanía y Cívica",
+            "Arte y Cultura", "Educación Física", "Educación Religiosa", "Educación para el Trabajo"
+        ]
     }
-    .main { background-color: var(--light-bg); }
-    
-    .header-box {
-        background: linear-gradient(135deg, var(--minedu-blue) 0%, #1e40af 100%);
-        padding: 30px;
-        border-radius: 15px;
-        color: white;
-        text-align: center;
-        margin-bottom: 30px;
-        box-shadow: 0 10px 25px rgba(0, 51, 102, 0.2);
-        border-bottom: 5px solid var(--minedu-red);
-    }
-    .header-box h1 { color: white; font-size: 2.5rem; margin: 0; font-weight: 800;}
-    .header-box p { color: #e2e8f0; font-size: 1.1rem; margin-top: 10px; }
-    
-    .stTabs [data-baseweb="tab-list"] { gap: 10px; margin-bottom: 20px; }
-    .stTabs [data-baseweb="tab"] {
-        background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px 8px 0 0;
-        padding: 10px 20px; font-weight: 700; color: var(--minedu-blue);
-    }
-    .stTabs [aria-selected="true"] { background-color: var(--minedu-red) !important; color: white !important; }
-    
-    .section-container {
-        background-color: #ffffff; padding: 25px; border-radius: 12px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px;
-        border-left: 5px solid var(--minedu-blue);
-    }
-    
-    .stButton>button {
-        background: var(--minedu-blue); color: white; font-weight: bold;
-        border-radius: 8px; border: none; transition: all 0.3s ease; width: 100%;
-        text-transform: uppercase;
-    }
-    .stButton>button:hover { background: var(--minedu-red); transform: translateY(-2px); }
-    </style>
-""", unsafe_allow_html=True)
 
-if 'resultados' not in st.session_state:
-    st.session_state.resultados = {"anual": None, "unidad": None, "sesion": None}
+# ==========================================
+# 3. CAPA DE SERVICIO: INTEGRACIÓN CON IA
+# ==========================================
 
-# --- FUNCIONES DE EXPORTACIÓN A WORD (CALIDAD IMPRENTA) ---
-
-def aplicar_fondo_celda(cell, color_hex):
-    """Aplica color de fondo a una celda de la tabla."""
-    tcPr = cell._tc.get_or_add_tcPr()
-    shd = parse_xml(f'<w:shd {nsdecls("w")} w:fill="{color_hex}"/>')
-    tcPr.append(shd)
-
-def limpiar_etiquetas_br(texto):
-    """SOLUCIÓN PROBLEMA 1: Elimina cualquier variante de etiqueta <br> o {br} para el documento final"""
-    if not texto:
-        return ""
-    # Remplaza <br>, <br/>, <br />, {br}, {br/} por un salto de línea real para que el Word lo interprete bien
-    texto_limpio = re.sub(r'<\s*/?\s*br\s*/?\s*>', '\n', texto, flags=re.IGNORECASE)
-    texto_limpio = re.sub(r'\{\s*/?\s*br\s*/?\s*\}', '\n', texto_limpio, flags=re.IGNORECASE)
-    # Limpia saltos de línea múltiples que hayan quedado
-    texto_limpio = re.sub(r'\n{3,}', '\n\n', texto_limpio)
-    return texto_limpio.strip()
-
-def construir_tabla_word(doc, matriz_datos):
-    if not matriz_datos: return
-    num_cols = max(len(fila) for fila in matriz_datos)
-    table = doc.add_table(rows=len(matriz_datos), cols=num_cols)
-    table.style = 'Table Grid'
-    table.autofit = True
-
-    for i, fila in enumerate(matriz_datos):
-        for j, celda in enumerate(fila):
-            if j < num_cols:
-                cell = table.cell(i, j)
-                texto_limpio = celda.replace('**', '').replace('*', '')
-                # APLICACIÓN SOLUCIÓN 1: Limpieza de celdas
-                texto_limpio = limpiar_etiquetas_br(texto_limpio)
-                
-                cell.text = texto_limpio
-                
-                # Estilo de Imprenta para Cabeceras de Tabla
-                if i == 0:
-                    aplicar_fondo_celda(cell, "EAEAEA") # Gris claro tipo imprenta
-                    for paragraph in cell.paragraphs:
-                        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                        for run in paragraph.runs: 
-                            run.font.bold = True
-                            run.font.color.rgb = RGBColor(0, 51, 102) # Azul institucional
-                else:
-                    # Justificar contenido interno para mayor limpieza
-                    for paragraph in cell.paragraphs:
-                        paragraph.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-    doc.add_paragraph()
-
-def insertar_imagen_generada(doc, prompt_imagen):
-    """Descarga una imagen por IA generativa basada en el prompt y la inserta en el Word."""
-    try:
-        query = urllib.parse.quote(prompt_imagen + ", ultra high quality, clean white background, educational vector flat style")
-        url = f"https://image.pollinations.ai/prompt/{query}?width=600&height=400&nologo=true"
-        
-        response = requests.get(url, timeout=10)
-        if response.status_code == 200:
-            image_stream = io.BytesIO(response.content)
-            p = doc.add_paragraph()
-            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            run = p.add_run()
-            run.add_picture(image_stream, width=Inches(4.5))
+class AIService:
+    """
+    Servicio para manejar la comunicación con ZhipuAI.
+    Implementa manejo de errores y timeouts.
+    """
+    def __init__(self):
+        # Preferir secrets de Streamlit en producción, fallback a variables de entorno
+        api_key = st.secrets.get("ZHIPUAI_API_KEY", os.getenv("ZHIPUAI_API_KEY"))
+        if not api_key:
+            logger.critical("ZHIPUAI_API_KEY no configurada.")
+            st.error("Error de configuración de servidor: API Key no encontrada.")
+            st.stop()
             
-            p_caption = doc.add_paragraph("Ilustración de la Ficha de Trabajo")
-            p_caption.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            p_caption.runs[0].font.size = Pt(8)
-            p_caption.runs[0].font.italic = True
-    except Exception as e:
-        doc.add_paragraph(f"[Espacio para Imagen: {prompt_imagen}]").alignment = WD_ALIGN_PARAGRAPH.CENTER
+        self.client = ZhipuAI(api_key=api_key)
+        self.model = os.getenv("ZHIPUAI_MODEL", "glm-4") # Modelo por defecto
 
-def generar_word_pro(titulo, contenido, ie, dist, area, grado):
-    doc = Document()
-    
-    # 1. Ajustes Editoriales: Márgenes de hoja
-    sections = doc.sections
-    for section in sections:
-        section.top_margin = Inches(0.8)
-        section.bottom_margin = Inches(0.8)
-        section.left_margin = Inches(0.8)
-        section.right_margin = Inches(0.8)
-
-    # 2. Configurar Fuentes Base (Calibri, estilo moderno)
-    style = doc.styles['Normal']
-    style.font.name = 'Calibri'
-    style.font.size = Pt(11)
-
-    # 3. Encabezado Institucional
-    header = doc.sections[0].header
-    p_header = header.paragraphs[0]
-    p_header.text = f"SISTEMA EDUPLAN IA - UGEL LA CONVENCIÓN\nI.E. {ie} | Distrito: {dist}"
-    p_header.style.font.size = Pt(8)
-    p_header.style.font.bold = True
-    p_header.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-
-    # 4. Título Principal
-    titulo_doc = doc.add_heading(level=1)
-    run_titulo = titulo_doc.add_run(titulo)
-    run_titulo.font.name = 'Calibri'
-    run_titulo.font.size = Pt(16)
-    run_titulo.font.bold = True
-    run_titulo.font.color.rgb = RGBColor(0, 51, 102) # Azul Minedu
-    titulo_doc.alignment = WD_ALIGN_PARAGRAPH.CENTER
-
-    # Tabla de Datos Informativos superior (Estilo limpio)
-    table_info = doc.add_table(rows=2, cols=2)
-    table_info.style = 'Table Grid'
-    
-    # SOLUCIÓN PROBLEMA 3: Campo Docente se envía completamente vacío (string "")
-    celdas_info = [
-        (0, 0, "ÁREA:", area), (0, 1, "GRADO/EDAD:", grado),
-        (1, 0, "DOCENTE:", ""), (1, 1, "AÑO LECTIVO:", str(ANIO_ACTUAL))
-    ]
-    for row, col, etiqueta, valor in celdas_info:
-        cell = table_info.cell(row, col)
-        aplicar_fondo_celda(cell, "F2F2F2") # Gris super claro
-        p = cell.paragraphs[0]
-        r1 = p.add_run(f"{etiqueta} ")
-        r1.bold = True
-        r1.font.color.rgb = RGBColor(0, 51, 102)
-        p.add_run(valor)
-
-    doc.add_paragraph("\n")
-    
-    # Parser de Markdown a Word con Integración de Imágenes y Limpieza
-    lineas = contenido.split('\n')
-    tabla_actual = []
-    
-    for linea in lineas:
-        linea = linea.strip()
-        if not linea: continue
-        
-        # Detección de Tabla
-        if linea.startswith('|') and linea.endswith('|'):
-            filas = [celda.strip() for celda in linea.strip('|').split('|')]
-            if all(all(c in '-: ' for c in celda) for celda in filas): continue
-            tabla_actual.append(filas)
-        else:
-            if tabla_actual:
-                construir_tabla_word(doc, tabla_actual)
-                tabla_actual = []
+    def generar_contenido(self, prompt: str, system_message: str) -> Optional[str]:
+        """
+        Envía un prompt a la IA y retorna la respuesta.
+        Implementa manejo de excepciones robusto.
+        """
+        try:
+            logger.info(f"Enviando petición a ZhipuAI (Modelo: {self.model})")
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system_message},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7,
+                timeout=60 # Timeout estricto para evitar bloqueos
+            )
+            return response.choices[0].message.content
             
-            # Detección de Etiqueta de Imagen IA
-            if "[IMAGEN_SUGERIDA:" in linea:
-                match = re.search(r'\[IMAGEN_SUGERIDA:(.*?)\]', linea)
-                if match:
-                    prompt_img = match.group(1).strip()
-                    insertar_imagen_generada(doc, prompt_img)
-                continue # Evita imprimir el texto de la etiqueta
+        except ZhipuAIError as e:
+            logger.error(f"Error de API ZhipuAI: {str(e)}")
+            st.error("Ocurrió un error al comunicarse con el servicio de IA. Por favor, intente nuevamente.")
+            return None
+        except Exception as e:
+            logger.exception("Error inesperado en generación de IA")
+            st.error("Error interno del servidor. El equipo técnico ha sido notificado.")
+            return None
+
+# ==========================================
+# 4. CAPA DE NEGOCIO: GENERACIÓN DE DOCUMENTOS
+# ==========================================
+
+class DocumentGenerator:
+    """
+    Clase encargada de generar documentos Word (.docx) con formato profesional.
+    Separada de la UI para mantener el Principio de Responsabilidad Única (SRP).
+    """
+    @staticmethod
+    def _add_shading_to_cell(cell, hex_color: str):
+        """Método helper seguro para agregar color de fondo a celdas de tabla."""
+        try:
+            shading_elm = parse_xml(r'<w:shd {} w:fill="{}"/>'.format(nsdecls('w'), hex_color))
+            cell._tc.get_or_add_tcPr().append(shading_elm)
+        except Exception as e:
+            logger.warning(f"No se pudo aplicar shading a la celda: {e}")
+
+    @classmethod
+    def create_word_document(cls, titulo: str, contenido: str, ie_nombre: str, distrito: str, area: str, grado: str) -> BytesIO:
+        """
+        Genera el documento Word en memoria y retorna un buffer.
+        """
+        try:
+            doc = Document()
             
-            # Limpiamos asteriscos sobrantes si no son parte de negrita
-            texto_limpio = linea
+            # --- Metadatos y Estilos Base ---
+            data = get_master_data()
+            doc.core_properties.title = titulo
+            doc.core_properties.author = data["NOMBRE_APP"]
+            doc.core_properties.comments = f"Generado para {ie_nombre} - {distrito}"
             
-            # Títulos y Subtítulos Estilizados
-            if linea.startswith('### '): 
-                h = doc.add_heading(level=3)
-                r = h.add_run(limpiar_etiquetas_br(texto_limpio[4:]).replace('*',''))
-                r.font.name = 'Calibri'
-                r.font.size = Pt(12)
-                r.font.bold = True
-                r.font.color.rgb = RGBColor(0, 51, 102)
-            elif linea.startswith('## '):
-                h = doc.add_heading(level=2)
-                r = h.add_run(limpiar_etiquetas_br(texto_limpio[3:]).replace('*',''))
-                r.font.name = 'Calibri'
-                r.font.size = Pt(14)
-                r.font.bold = True
-                r.font.color.rgb = RGBColor(0, 51, 102)
-            elif linea.startswith('# '):
-                h = doc.add_heading(level=1)
-                r = h.add_run(limpiar_etiquetas_br(texto_limpio[2:]).replace('*',''))
-                r.font.name = 'Calibri'
-                r.font.size = Pt(16)
-                r.font.bold = True
-                r.font.color.rgb = RGBColor(0, 51, 102)
-            else:
-                p = doc.add_paragraph()
-                p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-                # Procesador simple para negritas (**) dentro del párrafo
-                partes = re.split(r'(\*\*.*?\*\*)', linea)
-                for parte in partes:
-                    if parte.startswith('**') and parte.endswith('**'):
-                        texto_parte = parte[2:-2]
-                        texto_parte = limpiar_etiquetas_br(texto_parte)
-                        r = p.add_run(texto_parte)
-                        r.bold = True
-                        r.font.name = 'Calibri'
-                    else:
-                        texto_parte = limpiar_etiquetas_br(parte)
-                        r = p.add_run(texto_parte)
-                        r.font.name = 'Calibri'
+            # --- Encabezado ---
+            header = doc.add_paragraph()
+            header.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run = header.add_run(f"{data['NOMBRE_APP']}\nDocumento Curricular - CNEB Perú\n")
+            run.bold = True
+            run.font.size = Pt(14)
+            run.font.color.rgb = RGBColor(0, 51, 102) # Azul oscuro profesional
+            
+            # --- Título Principal ---
+            title_par = doc.add_heading(titulo, level=1)
+            title_par.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            
+            # --- Datos Informativos (Tabla) ---
+            doc.add_heading('I. DATOS INFORMATIVOS', level=2)
+            table = doc.add_table(rows=4, cols=2)
+            table.style = 'Table Grid'
+            
+            datos_info = [
+                ("Institución Educativa:", ie_nombre),
+                ("Lugar / Distrito:", distrito),
+                ("Área Curricular:", area),
+                ("Grado / Ciclo:", grado)
+            ]
+            
+            for i, (label, value) in enumerate(datos_info):
+                row = table.rows[i]
+                row.cells[0].text = label
+                row.cells[0].paragraphs[0].runs[0].bold = True
+                cls._add_shading_to_cell(row.cells[0], "F2F2F2")
+                row.cells[1].text = value
 
-    # En caso el documento termine con una tabla
-    if tabla_actual:
-        construir_tabla_word(doc, tabla_actual)
-        
-    return doc
-
-# --- INTERFAZ DE USUARIO PRINCIPAL ---
-st.markdown(f'<div class="header-box"><h1>{NOMBRE_APP}</h1><p>Planificación Curricular IA basada en el CNEB</p></div>', unsafe_allow_html=True)
-
-with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/8066/8066104.png", width=100)
-    st.markdown("### Datos del Contexto")
-    ie_nombre = st.text_input("Institución Educativa", "IE. Ejemplo")
-    distrito = st.selectbox("Distrito", DISTRICTS)
-    
-    st.markdown("### Configuración Pedagógica")
-    nivel = st.selectbox("Nivel Educativo", ["Primaria", "Secundaria", "Inicial"])
-    
-    if nivel == "Primaria":
-        grados = ["1ro", "2do", "3ro", "4to", "5to", "6to"]
-        areas = ["Matemática", "Comunicación", "Personal Social", "Ciencia y Tecnología", "Educación Física", "Arte y Cultura", "Educación Religiosa"]
-    elif nivel == "Secundaria":
-        grados = ["1ro", "2do", "3ro", "4to", "5to"]
-        areas = ["Matemática", "Comunicación", "Ciencias Sociales", "DPCC", "Ciencia y Tecnología", "Inglés", "Educación Física", "Arte y Cultura", "EPT", "Educación Religiosa", "Tutoría"]
-    else:
-        grados = ["3 años", "4 años", "5 años"]
-        areas = ["Comunicación", "Matemática", "Personal Social", "Psicomotriz", "Descubrimiento del Mundo"]
-        
-    grado = st.selectbox("Grado/Edad", grados)
-    area = st.selectbox("Área Curricular", areas)
-    
-    st.markdown("---")
-    st.info("📌 Los documentos generados respetan los Enfoques y Procesos Didácticos del MINEDU.")
-
-tabs = st.tabs(["Sesión de Aprendizaje", "Unidad Didáctica", "Programación Anual"])
-
-# Pestaña: Sesión de Aprendizaje
-with tabs[0]:
-    st.markdown("<div class='section-container'>", unsafe_allow_html=True)
-    st.subheader("📝 Generador de Sesión de Aprendizaje")
-    tema_sesion = st.text_input("Tema de la Sesión:", placeholder="Ej. Resolvemos problemas de adición con materiales concretos")
-    
-    if st.button("Generar Sesión con IA", key="btn_sesion"):
-        if not client:
-            st.error("Error: Configura correctamente tu API KEY de ZhipuAI en los secrets.")
-        elif not tema_sesion:
-            st.warning("Por favor, ingresa el tema de la sesión.")
-        else:
-            with st.spinner("🧠 EDUPLAN IA está redactando la sesión..."):
-                prompt_sys = obtener_prompt_cneb("Sesión de Aprendizaje", area, nivel, grado)
-                prompt_user = f"Tema de la sesión: {tema_sesion}."
-                try:
-                    response = client.chat.completions.create(
-                        model="glm-4",
-                        messages=[
-                            {"role": "system", "content": prompt_sys},
-                            {"role": "user", "content": prompt_user}
-                        ]
-                    )
-                    st.session_state.resultados["sesion"] = response.choices[0].message.content
-                except Exception as e:
-                    st.error(f"Error de conexión con IA: {str(e)}")
+            doc.add_paragraph("\n")
+            
+            # --- Contenido Generado por IA ---
+            doc.add_heading('II. DESARROLLO CURRICULAR', level=2)
+            
+            # Limpiar etiquetas de la vista web
+            contenido_limpio = re.sub(r'\[IMAGEN_SUGERIDA:.*?\]', '', contenido)
+            
+            # Procesar el markdown rudimentario a Word (simplificado para robustez)
+            for paragraph in contenido_limpio.split('\n\n'):
+                if not paragraph.strip():
+                    continue
                     
-    if st.session_state.resultados["sesion"]:
-        st.markdown(st.session_state.resultados["sesion"])
+                if paragraph.startswith('###'):
+                    doc.add_heading(paragraph.replace('###', '').strip(), level=3)
+                elif paragraph.startswith('**') and paragraph.endswith('**'):
+                    p = doc.add_paragraph()
+                    r = p.add_run(paragraph.replace('**', ''))
+                    r.bold = True
+                elif paragraph.startswith('- '):
+                    doc.add_paragraph(paragraph[2:], style='List Bullet')
+                else:
+                    doc.add_paragraph(paragraph.strip())
+            
+            # --- Pie de página ---
+            doc.add_page_break()
+            footer = doc.add_paragraph()
+            footer.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            footer.add_run(f"__________________________________\nFirma del Docente\n{ie_nombre}")
+            
+            # Guardar en buffer de memoria
+            buffer = BytesIO()
+            doc.save(buffer)
+            buffer.seek(0)
+            return buffer
+            
+        except Exception as e:
+            logger.error(f"Error generando documento Word: {e}", exc_info=True)
+            raise RuntimeError("Error al generar el archivo .docx")
+
+# ==========================================
+# 5. CAPA DE PRESENTACIÓN: COMPONENTES UI
+# ==========================================
+
+def render_sidebar() -> Tuple[str, str, str, str]:
+    """Renderiza el sidebar y recolecta datos globales del usuario."""
+    data = get_master_data()
+    
+    with st.sidebar:
+        st.image("https://cdn-icons-png.flaticon.com/512/3074/3074058.png", width=100) # Placeholder seguro
+        st.title(data["NOMBRE_APP"])
+        st.markdown(f"**Líder:** {data['LIDER']}")
+        st.divider()
         
-        # Generación del Word
-        doc_word = generar_word_pro("SESIÓN DE APRENDIZAJE", st.session_state.resultados["sesion"], ie_nombre, distrito, area, grado)
-        bio = io.BytesIO()
-        doc_word.save(bio)
+        st.header("⚙️ Configuración Global")
+        ie_nombre = st.text_input("Nombre de la I.E.", placeholder="Ej. 50113", max_chars=100)
+        distrito_sel = st.selectbox("Distrito", options=data["DISTRICTS"])
+        nivel_sel = st.selectbox("Nivel Educativo", options=data["NIVELES"])
         
-        st.download_button(
-            label="📥 Exportar Sesión a Word (Limpiada y Formateada)",
-            data=bio.getvalue(),
-            file_name=f"Sesion_{area}_{grado}_{ie_nombre}.docx",
-            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        # Lógica dinámica segura
+        areas = ["Todas (Docente de Aula)"] if nivel_sel == "Inicial" else data["AREAS_PRIMARIA_SECUNDARIA"]
+        area_sel = st.selectbox("Área Curricular", options=areas)
+        
+        st.info("💡 Estos datos se aplicarán a todos los documentos generados.")
+        
+        return ie_nombre, distrito_sel, nivel_sel, area_sel
+
+class PromptFactory:
+    """
+    El 'Cerebro' de la aplicación.
+    Contiene la lógica de Prompt Engineering para generar documentos pedagógicos de alta calidad.
+    """
+    @staticmethod
+    def get_system_message() -> str:
+        return (
+            "Eres un Especialista Pedagógico del Ministerio de Educación del Perú (MINEDU), "
+            "experto en el Currículo Nacional de la Educación Básica (CNEB). "
+            "Tu objetivo es diseñar documentos curriculares técnicos, precisos y listos para usar en el aula. "
+            "Usa un tono formal, académico y pedagógico. Formatea tu respuesta usando Markdown estructurado "
+            "(usa ### para títulos de secciones, **negritas** para resaltar y guiones para viñetas)."
         )
-    st.markdown("</div>", unsafe_allow_html=True)
 
-# Pestaña: Unidad Didáctica
-with tabs[1]:
-    st.markdown("<div class='section-container'>", unsafe_allow_html=True)
-    st.subheader("📂 Generador de Unidad Didáctica / EdA")
-    st.write("Configuración de Unidad en desarrollo...")
-    # (Aquí iría la lógica similar a la sesión para Unidad)
-    st.markdown("</div>", unsafe_allow_html=True)
+    @staticmethod
+    def build_prompt(tipo_doc: str, contexto: dict) -> str:
+        base_context = (
+            f"Diseña un(a) **{tipo_doc}** para el nivel **{contexto.get('nivel')}**, "
+            f"área de **{contexto.get('area')}**, para el **{contexto.get('grado')}**.\n"
+            f"El contexto sociosanitario/local de los estudiantes es: '{contexto.get('contexto_local')}'.\n\n"
+        )
 
-# Pestaña: Programación Anual
-with tabs[2]:
-    st.markdown("<div class='section-container'>", unsafe_allow_html=True)
-    st.subheader("📅 Generador de Programación Anual")
-    st.write("Configuración Anual en desarrollo...")
-    # (Aquí iría la lógica similar a la sesión para Anual)
-    st.markdown("</div>", unsafe_allow_html=True)
+        if tipo_doc == "Programación Anual":
+            instrucciones = (
+                "La Programación Anual debe contener exactamente la siguiente estructura:\n"
+                "### I. Descripción General\n"
+                "(Enfoque del área y propósito para este ciclo/grado).\n\n"
+                "### II. Propósitos de Aprendizaje\n"
+                "(Lista de Competencias y Capacidades del área seleccionada según el CNEB).\n\n"
+                "### III. Enfoques Transversales\n"
+                "(Selecciona 2 o 3 enfoques relevantes al contexto y explica cómo se aplicarán).\n\n"
+                "### IV. Organización de las Unidades Didácticas\n"
+                "(Propón 4 unidades para el año. Para cada una, indica: Título, Situación Significativa resumida, y Duración en semanas).\n\n"
+                "### V. Estrategias Metodológicas\n"
+                "(Estrategias de enseñanza sugeridas para el nivel y área).\n\n"
+                "### VI. Evaluación\n"
+                "(Evaluación diagnóstica, formativa y sumativa).\n\n"
+                "Asegúrate de que la progresión sea coherente para todo un año escolar."
+            )
+        elif tipo_doc == "Unidad Didáctica":
+            instrucciones = (
+                "La Unidad Didáctica debe contener exactamente la siguiente estructura:\n"
+                "### I. Título de la Unidad\n"
+                "(Debe ser motivador y estar relacionado al contexto local).\n\n"
+                "### II. Propósitos de Aprendizaje y Evaluación\n"
+                "(Detalla 2 competencias del área. Para cada una incluye: Capacidades, Desempeños precisados, Criterios de Evaluación y Evidencia de aprendizaje).\n\n"
+                "### III. Situación Significativa\n"
+                "(Redacta una situación retadora de 2 párrafos basada en el contexto local proporcionado. Debe terminar con una pregunta retadora).\n\n"
+                "### IV. Secuencia de Sesiones\n"
+                "(Propón 5 sesiones secuenciales. Para cada una incluye: Título y un breve propósito de la sesión).\n\n"
+                "### V. Materiales y Recursos\n"
+                "(Recursos educativos y tecnológicos a utilizar)."
+            )
+        elif tipo_doc == "Sesión de Aprendizaje":
+            instrucciones = (
+                "La Sesión de Aprendizaje debe contener exactamente la siguiente estructura:\n"
+                "### I. Título de la Sesión\n"
+                "(Creativo y relacionado al propósito).\n\n"
+                "### II. Propósito y Evidencia\n"
+                "(Menciona la Competencia, Capacidad, Desempeño precisado, Criterio de evaluación, Evidencia e Instrumento de evaluación).\n\n"
+                "### III. Preparación de la Sesión\n"
+                "(¿Qué necesitamos hacer antes? ¿Qué recursos o materiales se utilizarán?).\n\n"
+                "### IV. Momentos de la Sesión\n"
+                "**INICIO (20 min):**\n"
+                "- Motivación, recuperación de saberes previos, conflicto cognitivo y declaración del propósito.\n"
+                "**DESARROLLO (60 min):**\n"
+                "- Gestión y acompañamiento del desarrollo de competencias (procesos didácticos específicos del área seleccionada).\n"
+                "**CIERRE (10 min):**\n"
+                "- Evaluación y metacognición (preguntas reflexivas).\n\n"
+                "Debe ser extremadamente práctica para que un docente pueda dictarla inmediatamente."
+            )
+        else:
+            instrucciones = "Genera el documento siguiendo los lineamientos del CNEB."
+
+        return base_context + instrucciones
+
+def render_generador(tipo_doc: str, tab_key: str, global_context: tuple):
+    """
+    Renderiza el formulario y maneja la lógica para una pestaña específica.
+    Implementa validaciones y sanitización.
+    """
+    ie_nombre, distrito_sel, nivel_sel, area_sel = global_context
+    data = get_master_data()
+    
+    st.markdown(f"### 📝 Generador de {tipo_doc}")
+    
+    with st.form(key=f"form_{tab_key}"):
+        col1, col2 = st.columns(2)
+        with col1:
+            grado_sel = st.text_input("Grado / Año", placeholder="Ej. 3ro, 4 años...", max_chars=20)
+        with col2:
+            contexto_sel = st.selectbox("Situación Significativa / Contexto", options=data["CONTEXTOS_LOCALES"])
+            
+        submit_btn = st.form_submit_button(f"🚀 Generar {tipo_doc}", use_container_width=True)
+        
+    if submit_btn:
+        # Validación de entrada
+        if not ie_nombre.strip() or not grado_sel.strip():
+            st.warning("⚠️ Por favor, complete el Nombre de la I.E. y el Grado en el menú lateral y formulario antes de generar.")
+            return
+
+        with st.spinner(f"Analizando CNEB y redactando {tipo_doc}... (Esto puede tomar un minuto)"):
+            ai_service = AIService()
+            contexto = {
+                "nivel": nivel_sel, "area": area_sel, 
+                "grado": grado_sel, "contexto_local": contexto_sel
+            }
+            
+            prompt = PromptFactory.build_prompt(tipo_doc, contexto)
+            system_msg = PromptFactory.get_system_message()
+            
+            resultado = ai_service.generar_contenido(prompt, system_msg)
+            
+            if resultado:
+                # Guardar en Session State para no perderlo al interactuar con otros widgets
+                st.session_state[f"resultado_{tab_key}"] = resultado
+                st.session_state[f"meta_{tab_key}"] = contexto
+
+    # Mostrar resultados si existen en el estado de sesión
+    if st.session_state.get(f"resultado_{tab_key}"):
+        st.success("✅ ¡Documento generado con éxito!")
+        
+        resultado_actual = st.session_state[f"resultado_{tab_key}"]
+        
+        # Contenedor seguro con scroll
+        with st.container(height=450, border=True):
+            # Sanitización visual simple para Streamlit
+            vista_web = re.sub(r'\[IMAGEN_SUGERIDA:.*?\]', '*(Aquí se insertará automáticamente una imagen ilustrativa en el documento Word)*', resultado_actual)
+            st.markdown(vista_web)
+            
+        st.divider()
+        
+        # Generación diferida de Word solo cuando se solicita (Optimización)
+        try:
+            titulo_doc = f"{tipo_doc.upper()} - {area_sel}"
+            file_word = DocumentGenerator.create_word_document(
+                titulo=titulo_doc,
+                contenido=resultado_actual,
+                ie_nombre=ie_nombre,
+                distrito=distrito_sel,
+                area=area_sel,
+                grado=st.session_state[f"meta_{tab_key}"]["grado"]
+            )
+            
+            file_name_clean = re.sub(r'[\\/*?:"<>|]', "", f"{tipo_doc}_{grado_sel}_{area_sel}.docx").replace(" ", "_")
+            
+            st.download_button(
+                label="📥 EXPORTAR A MICROSOFT WORD (.DOCX) - CALIDAD IMPRENTA", 
+                data=file_word, 
+                file_name=file_name_clean, 
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                key=f"dl_{tab_key}",
+                use_container_width=True,
+                type="primary"
+            )
+        except Exception as e:
+            st.error("Hubo un problema al preparar el archivo Word para descarga.")
+
+# ==========================================
+# 6. FUNCIÓN PRINCIPAL (ENTRY POINT)
+# ==========================================
+
+def main():
+    """Punto de entrada principal de la aplicación Streamlit."""
+    data = get_master_data()
+    
+    # Configuración de página (Seguridad y SEO básico)
+    st.set_page_config(
+        page_title=data["NOMBRE_APP"],
+        page_icon="📚",
+        layout="wide",
+        initial_sidebar_state="expanded"
+    )
+    
+    # Ocultar menú de Streamlit en producción (Seguridad UI)
+    if os.getenv("ENVIRONMENT") == "production":
+        hide_streamlit_style = """
+        <style>
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        header {visibility: hidden;}
+        </style>
+        """
+        st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
+    # UI principal
+    global_context = render_sidebar()
+    
+    st.title(f"🤖 {data['NOMBRE_APP']}")
+    st.markdown("Plataforma de IA generativa alineada al **CNEB** para la creación de documentos curriculares.")
+    
+    # Navegación por pestañas
+    tab1, tab2, tab3 = st.tabs(["📅 Programación Anual", "📚 Unidad Didáctica", "📝 Sesión de Aprendizaje"])
+    
+    with tab1:
+        render_generador("Programación Anual", "anual", global_context)
+    with tab2:
+        render_generador("Unidad Didáctica", "unidad", global_context)
+    with tab3:
+        render_generador("Sesión de Aprendizaje", "sesion", global_context)
+        
+    # Footer
+    st.markdown(
+        f"""
+        <div style="text-align: center; margin-top: 50px; padding-top: 20px; border-top: 1px solid #ddd; color: gray;">
+            <small>© {data['ANIO_ACTUAL']} {data['NOMBRE_APP']} | Desarrollado bajo estándares del MINEDU</small>
+        </div>
+        """, 
+        unsafe_allow_html=True
+    )
+
+if __name__ == "__main__":
+    main()
