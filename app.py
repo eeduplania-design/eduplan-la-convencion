@@ -290,23 +290,39 @@ with st.sidebar:
 
 tab1, tab2, tab3 = st.tabs(["📝 Sesión de Aprendizaje", "📚 Unidad Didáctica", "📅 Programación Anual"])
 
+def limpiar_dependencias(key_grado, key_area):
+    """Limpia la memoria caché de grado y área para evitar que los selectores se congelen."""
+    if key_grado in st.session_state:
+        del st.session_state[key_grado]
+    if key_area in st.session_state:
+        del st.session_state[key_area]
+
 def form_ui(tipo_doc):
     # SOLUCIÓN: Quitamos 'with st.form' y agregamos 'key' a cada widget para que se actualicen en tiempo real
     col1, col2 = st.columns(2)
+    
+    grado_key = f"gra_{tipo_doc}"
+    area_key = f"area_{tipo_doc}"
     
     with col1:
         docente = st.text_input("Nombre del Docente", help="Aparecerá en los datos informativos.", key=f"doc_{tipo_doc}")
         ie = st.text_input("Institución Educativa", help="Nombre o número del colegio.", key=f"ie_{tipo_doc}")
         
-        # Al seleccionar el nivel, el script se actualiza al instante
-        nivel = st.selectbox("Nivel Educativo", list(NIVELES_GRADOS.keys()), key=f"niv_{tipo_doc}")
+        # Al seleccionar el nivel, el script se actualiza al instante y resetea las memorias
+        nivel = st.selectbox(
+            "Nivel Educativo", 
+            list(NIVELES_GRADOS.keys()), 
+            key=f"niv_{tipo_doc}",
+            on_change=limpiar_dependencias,
+            args=(grado_key, area_key)
+        )
         
         # Y muestra los grados correspondientes al nivel de arriba
-        grado = st.selectbox("Grado/Edad", NIVELES_GRADOS[nivel], key=f"gra_{tipo_doc}")
+        grado = st.selectbox("Grado/Edad", NIVELES_GRADOS[nivel], key=grado_key)
         
     with col2:
         # Muestra las áreas del nivel seleccionado
-        area = st.selectbox("Área Curricular", AREAS_NIVEL[nivel], key=f"area_{tipo_doc}")
+        area = st.selectbox("Área Curricular", AREAS_NIVEL[nivel], key=area_key)
         tema = st.text_input("Tema / Título Principal", help="Ej. 'Conocemos el ciclo del agua'", key=f"tema_{tipo_doc}")
         enfoque = st.selectbox("Enfoque Transversal", ENFOQUES_TRANSVERSALES, key=f"enf_{tipo_doc}")
         duracion = st.text_input("Duración", value="90 minutos (2 horas pedagógicas)", key=f"dur_{tipo_doc}")
