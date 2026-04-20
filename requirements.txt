@@ -2,3 +2,5 @@ streamlit
 zhipuai
 python-docx
 requests
+sniffio
+httpx
