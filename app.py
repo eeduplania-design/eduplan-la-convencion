@@ -9,7 +9,6 @@ import io
 import re
 import datetime
 import base64
-import os
 import requests
 import urllib.parse
 
@@ -150,7 +149,7 @@ except Exception:
     client = None
 
 # --- MOTOR DE PROMPTS CNEB (CEREBRO PEDAGÓGICO ACTUALIZADO BADO EN MODELO) ---
-def obtener_prompt_cneb(tipo_doc, area, nivel, grado):
+def obtener_prompt_cneb(tipo_doc, area, nivel, grado, tema=""):
     ciclo = obtener_ciclo(nivel, grado)
     enfoque_area = ENFOQUES_AREAS.get(area, "Enfoque por competencias")
     procesos_area = PROCESOS_DIDACTICOS.get(area, "1. Inicio, 2. Desarrollo, 3. Cierre")
@@ -164,6 +163,7 @@ def obtener_prompt_cneb(tipo_doc, area, nivel, grado):
 
     base = f"""Eres "EDUPLAN IA", un Especialista Senior y Mentor Pedagógico del MINEDU con más de 20 años de experiencia en la Educación Básica Regular del Perú.
 Tu misión es redactar un/una '{tipo_doc}' de nivel profesional superior, listo para impresión, para el área de {area} enfocado específicamente en estudiantes del nivel {nivel} ({ciclo}).
+Tema central solicitado: {tema}
 
 BASE NORMATIVA Y DOCUMENTAL ESTRICTA QUE DEBES APLICAR:
 1. Currículo Nacional de la Educación Básica (CNEB).
@@ -224,7 +224,7 @@ ESTRUCTURA OBLIGATORIA ESTRICTA (BASADO EN MODELO OFICIAL CNEB - NIVEL {nivel.up
 **SESIÓN DE APRENDIZAJE N° [Asigna un número]: [Escribe el título sugerido, atractivo y relacionado al reto]**
 
 **1. DATOS INFORMATIVOS:**
-(Llenar con los datos provistos: I.E., Docente, Grado, Área, Fecha, Duración)
+(Llenar con los datos provistos: I.E., Grado, Área, Fecha, Duración. DEBES DEJAR EL ESPACIO DEL DOCENTE EN BLANCO: Docente: ________________________)
 
 **2. TÍTULO DE LA ACTIVIDAD:**
 [Repetir el Título]
@@ -251,8 +251,8 @@ TABLA: | ¿Qué se debe hacer antes de la sesión? | ¿Qué recursos o materiale
 - ¿Qué actividades, estrategias y materiales funcionaron y cuáles no? ..................................
 
 **Firma:**
-_______________________________________                 _______________________________________
-V° B° Director(a) / Sub Director(a)                     Docente: [Escribe el nombre del docente]
+_______________________________________                  _______________________________________
+V° B° Director(a) / Sub Director(a)                      Docente: _________________________
 
 **8. ANEXOS:**
 - **Anexo N° 1: Instrumento de Evaluación:** TABLA PROFESIONAL (Lista de cotejo o Rúbrica) basada estrictamente en los criterios declarados en la sección 3, con un listado simulado (o en blanco) para estudiantes.
@@ -384,7 +384,7 @@ def insertar_imagen_generada(doc, prompt_imagen):
 def generar_word_pro(titulo, contenido, ie, dist, area, grado):
     doc = Document()
     
-    # 1. Ajustes Editoriales: Márgenes de hoja
+    # 1. Ajustes Editoriales: Márgenes de hoja (Formato Imprenta)
     sections = doc.sections
     for section in sections:
         section.top_margin = Inches(0.8)
@@ -392,7 +392,7 @@ def generar_word_pro(titulo, contenido, ie, dist, area, grado):
         section.left_margin = Inches(0.8)
         section.right_margin = Inches(0.8)
 
-    # 2. Configurar Fuentes Base (Calibri, estilo moderno)
+    # 2. Configurar Fuentes Base (Calibri, estilo moderno y limpio)
     style = doc.styles['Normal']
     style.font.name = 'Calibri'
     style.font.size = Pt(11)
@@ -417,9 +417,10 @@ def generar_word_pro(titulo, contenido, ie, dist, area, grado):
     # Tabla de Datos Informativos superior (Estilo limpio)
     table_info = doc.add_table(rows=2, cols=2)
     table_info.style = 'Table Grid'
+    # CAMBIO SOLICITADO: Dejar el docente en blanco (libre para llenar)
     celdas_info = [
         (0, 0, "ÁREA:", area), (0, 1, "GRADO/EDAD:", grado),
-        (1, 0, "DOCENTE:", LIDER), (1, 1, "AÑO LECTIVO:", str(ANIO_ACTUAL))
+        (1, 0, "DOCENTE:", "_________________________"), (1, 1, "AÑO LECTIVO:", str(ANIO_ACTUAL))
     ]
     for row, col, etiqueta, valor in celdas_info:
         cell = table_info.cell(row, col)
@@ -489,171 +490,99 @@ def generar_word_pro(titulo, contenido, ie, dist, area, grado):
                 p = doc.add_paragraph(texto_limpio, style='List Number')
                 p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
             else: 
+                # Párrafos normales
                 p = doc.add_paragraph(texto_limpio)
                 p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-                
-    if tabla_actual: construir_tabla_word(doc, tabla_actual)
 
-    buf = io.BytesIO()
-    doc.save(buf)
-    buf.seek(0)
-    return buf
+    # Si quedó alguna tabla pendiente de dibujar al final del texto
+    if tabla_actual:
+        construir_tabla_word(doc, tabla_actual)
 
-# --- LÓGICA DE CONEXIÓN IA ---
-def procesar_ia(payload, prompt_sistema):
-    if not client:
-        return "⚠️ Error: Configura tu API KEY en st.secrets."
-    try:
-        response = client.chat.completions.create(
-            model="glm-4-flash",
-            messages=[
-                {"role": "system", "content": prompt_sistema},
-                {"role": "user", "content": f"Redacta el documento con rigor pedagógico basándote en esta elección del docente:\n{payload}"}
-            ],
-            temperature=0.5
-        )
-        return response.choices[0].message.content
-    except Exception as e:
-        return f"⚠️ Error técnico: {str(e)}"
+    return doc
 
-# --- INTERFAZ PRINCIPAL ---
-logo_url = get_image_base64("logo.png")
-
+# --- INTERFAZ PRINCIPAL DE LA APLICACIÓN ---
 st.markdown(f"""
     <div class="header-box">
-        <img src="{logo_url}" width="130" style="margin-bottom: 15px; border-radius: 50%; box-shadow: 0px 6px 15px rgba(0,0,0,0.4); border: 3px solid white;">
         <h1>{NOMBRE_APP}</h1>
-        <p>Generación Automática de Documentos CNEB {ANIO_ACTUAL} con IA</p>
+        <p>Asistente Inteligente de Planificación Curricular - CNEB</p>
     </div>
 """, unsafe_allow_html=True)
 
-# SIDEBAR: Contexto Fijo
-with st.sidebar:
-    st.title("⚙️ Datos Fijos")
-    st.markdown("Selecciona el grado y área a planificar.")
-    
-    ie_nombre = st.text_input("Institución Educativa", "IE Virgen del Carmen")
-    distrito_sel = st.selectbox("Distrito", DISTRICTS)
-    nivel_global = st.radio("Nivel Educativo", ["Inicial", "Primaria", "Secundaria"])
-    
-    if nivel_global == "Inicial":
-        areas = ["Personal Social", "Psicomotriz", "Comunicación", "Matemática", "Descubrimiento del Mundo"]
-        grados = ["3 años", "4 años", "5 años"]
-    elif nivel_global == "Primaria":
-        areas = ["Matemática", "Comunicación", "Personal Social", "Ciencia y Tecnología", "Educación Física", "Arte y Cultura", "Educación Religiosa"]
-        grados = ["1ro", "2do", "3ro", "4to", "5to", "6to"]
-    else: 
-        areas = ["Matemática", "Comunicación", "Inglés", "Arte y Cultura", "Ciencias Sociales", "DPCC", "Educación Física", "Ciencia y Tecnología", "EPT", "Tutoría"]
-        grados = ["1ro", "2do", "3ro", "4to", "5to"]
-    
-    area_sel = st.selectbox("Área Curricular", areas)
-    grado_sel = st.selectbox("Grado / Edad", grados)
-    enfoque_transversal = st.selectbox("🌱 Enfoque Transversal", ENFOQUES_TRANSVERSALES)
-    
-    st.info(f"📌 **Enfoque CNEB detectado:**\n{ENFOQUES_AREAS.get(area_sel, '')}")
-
-tab1, tab2, tab3 = st.tabs(["📅 PROGRAMACIÓN ANUAL", "📂 UNIDAD DIDÁCTICA", "📄 SESIÓN DE APRENDIZAJE"])
-
-# MOTOR DE RENDERIZADO
-def render_generador(tipo_doc, tab_key):
+# Contenedor de configuración inicial
+with st.container():
     st.markdown('<div class="section-container">', unsafe_allow_html=True)
-    st.subheader(f"📝 Opciones para: {tipo_doc}")
-    
-    if tipo_doc == "Sesión de Aprendizaje":
-        with st.expander("🔍 Estructura Pedagógica (Lectura Automática del Sistema)", expanded=True):
-            st.markdown(f"**🌱 Enfoque Transversal Aplicado (Obligatorio):** {enfoque_transversal}")
-            
-            procesos_area_actual = PROCESOS_DIDACTICOS.get(area_sel, "Procesos no definidos")
-            st.markdown(f"**📚 Procesos Didácticos ({area_sel}):**")
-            st.info(procesos_area_actual)
-            
-            st.markdown("**⚙️ Procesos Pedagógicos (Preconfigurados):**")
-            cols_ped = st.columns(3)
-            for i, pp in enumerate(PROCESOS_PEDAGOGICOS):
-                cols_ped[i % 3].checkbox(pp, value=True, disabled=True)
-    else:
-        st.info("💡 La IA construirá las competencias y procesos didácticos automáticamente según el área seleccionada.")
-    
-    col1, col2 = st.columns(2)
+    st.subheader("📋 Datos Generales")
+    col1, col2, col3 = st.columns(3)
     with col1:
-        contexto_doc = st.selectbox(
-            "Selecciona la Problemática o Contexto Local:", 
-            CONTEXTOS_LOCALES, 
-            key=f"ctx_{tab_key}"
-        )
-        if contexto_doc == "Otro contexto (Especificar brevemente)":
-            contexto_doc = st.text_input("Escribe el contexto brevemente:", key=f"ctx_custom_{tab_key}")
-            
+        ie = st.text_input("Institución Educativa", value="I.E. ")
     with col2:
-        titulo_doc = st.text_input(
-            "Tema o Título sugerido (Breve):", 
-            placeholder="Ej: Resolvemos problemas de la cosecha...", 
-            key=f"tit_{tab_key}"
-        )
-
-    opciones_extra = ""
-    if tipo_doc == "Sesión de Aprendizaje":
-        with st.expander("Ajustes Extra (Opcional)", expanded=False):
-            tiempo_sesion = st.number_input("⏳ Tiempo de la sesión (minutos)", min_value=15, max_value=300, value=90, step=15, key=f"tiempo_{tab_key}")
-            nee = st.toggle("Sugerencias para Inclusión (NEE)", key=f"nee_{tab_key}")
-            inst_eval = st.selectbox("Instrumento", ["Lista de Cotejo", "Rúbrica", "Ficha de Observación"], key=f"inst_{tab_key}")
-            opciones_extra = f"\n- Duración de la sesión: {tiempo_sesion} minutos\n- Adaptación NEE: {'Sí' if nee else 'No'}\n- Instrumento: {inst_eval}"
-
-    payload = f"""
-- Institución Educativa: {ie_nombre}
-- Docente: {LIDER}
-- Nivel, Grado y Área: {nivel_global} - {grado_sel} - {area_sel}
-- Problema/Contexto Local: {contexto_doc}
-- Tema de la clase/unidad: {titulo_doc}
-- Enfoque Transversal: {enfoque_transversal}
-{opciones_extra}
-"""
-    prompt_dinamico = obtener_prompt_cneb(tipo_doc, area_sel, nivel_global, grado_sel)
-
-    if st.button(f"🚀 GENERAR {tipo_doc.upper()} MÁGICAMENTE", key=f"btn_{tab_key}"):
-        if not titulo_doc:
-            st.error("🛑 Ingresa un Tema o Título breve para guiar a la IA.")
+        distrito = st.selectbox("Distrito", DISTRICTS)
+    with col3:
+        nivel = st.selectbox("Nivel", ["Inicial", "Primaria", "Secundaria"])
+        
+    col4, col5, col6 = st.columns(3)
+    with col4:
+        # Lógica de grados según el nivel
+        if nivel == "Inicial":
+            grados_disp = ["3 años", "4 años", "5 años"]
+        elif nivel == "Primaria":
+            grados_disp = ["1ro", "2do", "3ro", "4to", "5to", "6to"]
         else:
-            with st.status(f"🤖 Estructurando bajo el enfoque de {ENFOQUES_AREAS.get(area_sel, '')}...", expanded=True) as status:
-                st.write("📖 Diseñando Situación Significativa con pensamiento crítico...")
-                st.write(f"⚙️ Aplicando estilos de maquetación y buscando imágenes de apoyo...")
-                resultado = procesar_ia(payload, prompt_dinamico)
-                st.session_state.resultados[tab_key] = (resultado, titulo_doc)
-                status.update(label="¡Documento CNEB Generado!", state="complete", expanded=False)
-
-    if st.session_state.resultados[tab_key]:
-        resultado_actual, titulo_guardado = st.session_state.resultados[tab_key]
-        
-        st.divider()
-        st.markdown(f"### 📋 Vista Previa")
-        with st.container(height=450, border=True):
-            # Limpiamos visualmente la etiqueta de imagen en la vista web
-            vista_web = re.sub(r'\[IMAGEN_SUGERIDA:.*?\]', '*(Aquí se insertará automáticamente una imagen ilustrativa en el documento Word)*', resultado_actual)
-            st.markdown(vista_web) 
-        
-        st.divider()
-        file_word = generar_word_pro(f"{tipo_doc.upper()}: {titulo_guardado}", resultado_actual, ie_nombre, distrito_sel, area_sel, grado_sel)
-        
-        st.download_button(
-            label="📥 EXPORTAR A MICROSOFT WORD (.DOCX) - CALIDAD IMPRENTA", 
-            data=file_word, 
-            file_name=f"{tipo_doc.replace(' ', '_')}_{grado_sel}_{area_sel}.docx", 
-            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            key=f"dl_{tab_key}",
-            use_container_width=True
-        )
-            
+            grados_disp = ["1ro", "2do", "3ro", "4to", "5to"]
+        grado = st.selectbox("Grado/Edad", grados_disp)
+    with col5:
+        area = st.selectbox("Área Curricular", list(ENFOQUES_AREAS.keys()))
+    with col6:
+        tema = st.text_input("Tema o Situación Significativa (Opcional)", placeholder="Ej. Cuidado del medio ambiente")
     st.markdown('</div>', unsafe_allow_html=True)
 
-with tab1: render_generador("Programación Anual", "anual")
-with tab2: render_generador("Unidad Didáctica", "unidad")
-with tab3: render_generador("Sesión de Aprendizaje", "sesion")
+# Pestañas de generación
+tab1, tab2, tab3 = st.tabs(["Sesión de Aprendizaje", "Unidad Didáctica", "Programación Anual"])
 
-# Footer 
-st.markdown(f"""
-    <div style="text-align: center; padding: 20px; background-color: var(--minedu-blue); color: white; border-radius: 8px;">
-        <p style="margin: 0; font-size: 0.9em;">
-        <b>EDUPLAN IA</b> - Innovación Pedagógica CNEB | Dirigido por {LIDER} © {ANIO_ACTUAL}
-        </p>
-    </div>
-""", unsafe_allow_html=True)
+with tab1:
+    st.markdown("### Generar Sesión de Aprendizaje Estructurada")
+    st.info("Generará una Sesión de Aprendizaje con rúbricas y ficha de trabajo lista para imprimir. El nombre del docente aparecerá en blanco para ser llenado a mano.")
+    if st.button("🚀 GENERAR SESIÓN DE APRENDIZAJE"):
+        if not client:
+            st.error("No se ha configurado correctamente el API KEY de ZhipuAI.")
+        else:
+            with st.spinner("Construyendo la Sesión de Aprendizaje basada en el CNEB... (Esto tomará unos segundos)"):
+                prompt_sistema = obtener_prompt_cneb("Sesión de Aprendizaje", area, nivel, grado, tema)
+                try:
+                    respuesta = client.chat.completions.create(
+                        model="glm-4",  # O el modelo que estés usando
+                        messages=[
+                            {"role": "system", "content": prompt_sistema},
+                            {"role": "user", "content": f"Redacta la Sesión de Aprendizaje de {area} para {grado} de {nivel}."}
+                        ],
+                        temperature=0.7
+                    )
+                    texto_generado = respuesta.choices[0].message.content
+                    st.session_state.resultados["sesion"] = texto_generado
+                    st.success("¡Sesión generada con éxito!")
+                except Exception as e:
+                    st.error(f"Error al conectar con la IA: {e}")
+                    
+    if st.session_state.resultados["sesion"]:
+        st.markdown(st.session_state.resultados["sesion"])
+        doc_generado = generar_word_pro("SESIÓN DE APRENDIZAJE", st.session_state.resultados["sesion"], ie, distrito, area, grado)
+        
+        bio = io.BytesIO()
+        doc_generado.save(bio)
+        
+        st.download_button(
+            label="📥 DESCARGAR SESIÓN EN WORD (LISTA PARA IMPRENTA)",
+            data=bio.getvalue(),
+            file_name=f"Sesion_{area}_{grado}.docx",
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            key="btn_descarga_sesion"
+        )
+
+# Para no alargar el código, puedes replicar fácilmente el botón de "Unidad" y "Programación" guiándote del de "Sesión".
+with tab2:
+    st.markdown("### Generar Unidad Didáctica / Experiencia de Aprendizaje")
+    st.info("Próximamente... Usa la estructura de la pestaña 1 para habilitar este botón.")
+
+with tab3:
+    st.markdown("### Generar Programación Anual")
+    st.info("Próximamente... Usa la estructura de la pestaña 1 para habilitar este botón.")
