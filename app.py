@@ -119,20 +119,23 @@ def add_header_footer(doc):
         run.font.color.rgb = RGBColor(128, 128, 128)
 
 def insertar_imagen_pollinations(doc, prompt_imagen):
-    """Busca e inserta imagen desde Pollinations AI"""
+    """Busca e inserta imagen desde Pollinations AI con validación de seguridad"""
     try:
         query = urllib.parse.quote(f"{prompt_imagen}, educational vector style, flat illustration, for kids, white background")
         url = f"https://image.pollinations.ai/prompt/{query}?width=500&height=350&nologo=true"
-        response = requests.get(url, timeout=8)
+        response = requests.get(url, timeout=10) # Aumentamos un poco el timeout
         
-        if response.status_code == 200:
+        # Validar que la respuesta sea un 200 OK y que el contenido sea realmente una imagen
+        if response.status_code == 200 and 'image' in response.headers.get('Content-Type', ''):
             image_stream = io.BytesIO(response.content)
             p = doc.add_paragraph()
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             run = p.add_run()
             run.add_picture(image_stream, width=Inches(4.5))
+        else:
+            doc.add_paragraph("[Imagen no disponible temporalmente]").alignment = WD_ALIGN_PARAGRAPH.CENTER
     except Exception as e:
-        # Falla silenciosa, inserta un recuadro de texto
+        # Falla silenciosa controlada, inserta un recuadro de texto
         doc.add_paragraph("[Espacio para imagen referencial]").alignment = WD_ALIGN_PARAGRAPH.CENTER
 
 def markdown_to_docx(markdown_text):
@@ -146,39 +149,47 @@ def markdown_to_docx(markdown_text):
 
     def procesar_tabla(datos):
         if not datos: return
-        # Filtrar la fila de separadores de markdown (|---|---|)
-        datos = [row for row in datos if not re.match(r'^\|[\-\|\s]+\|$', row.strip())]
-        if not datos: return
+        try:
+            # Filtrar la fila de separadores de markdown (|---|---|)
+            datos = [row for row in datos if not re.match(r'^\|[\-\|\s]+\|$', row.strip())]
+            if not datos: return
 
-        # Contar columnas usando la primera fila válida
-        headers = [c.strip() for c in datos[0].split('|')[1:-1]]
-        num_cols = len(headers)
-        
-        table = doc.add_table(rows=len(datos), cols=num_cols)
-        table.style = 'Table Grid'
-        
-        for i, row in enumerate(datos):
-            cells_text = [c.strip() for c in row.split('|')[1:-1]]
-            for j in range(min(num_cols, len(cells_text))):
-                cell = table.cell(i, j)
-                text = cells_text[j].replace('**', '')
-                cell.text = text
-                
-                # Formato Encabezado de Tabla (Fila 0)
-                if i == 0:
-                    shading_elm = parse_xml(r'<w:shd {} w:fill="D9E2F3"/>'.format(nsdecls('w')))
-                    cell._tc.get_or_add_tcPr().append(shading_elm)
-                    for paragraph in cell.paragraphs:
-                        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                        for run in paragraph.runs:
-                            run.font.bold = True
-                else:
-                    # Contenido normal
-                    for paragraph in cell.paragraphs:
-                        paragraph.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-                        for run in paragraph.runs:
-                            run.font.size = Pt(10)
-        doc.add_paragraph()
+            # Contar columnas usando la primera fila válida
+            headers = [c.strip() for c in datos[0].split('|')[1:-1]]
+            num_cols = len(headers)
+            
+            if num_cols == 0: return # Evitar procesar si no hay columnas válidas
+            
+            table = doc.add_table(rows=len(datos), cols=num_cols)
+            table.style = 'Table Grid'
+            
+            for i, row in enumerate(datos):
+                cells_text = [c.strip() for c in row.split('|')[1:-1]]
+                for j in range(min(num_cols, len(cells_text))):
+                    cell = table.cell(i, j)
+                    text = cells_text[j].replace('**', '')
+                    cell.text = text
+                    
+                    # Formato Encabezado de Tabla (Fila 0)
+                    if i == 0:
+                        shading_elm = parse_xml(r'<w:shd {} w:fill="D9E2F3"/>'.format(nsdecls('w')))
+                        cell._tc.get_or_add_tcPr().append(shading_elm)
+                        for paragraph in cell.paragraphs:
+                            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                            for run in paragraph.runs:
+                                run.font.bold = True
+                    else:
+                        # Contenido normal
+                        for paragraph in cell.paragraphs:
+                            paragraph.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+                            for run in paragraph.runs:
+                                run.font.size = Pt(10)
+            doc.add_paragraph()
+        except Exception as e:
+            # SALVAVIDAS: Si la tabla viene mal formada por la IA, se imprime como texto en lugar de romper la app.
+            for row in datos:
+                doc.add_paragraph(row.replace('|', ' ')).alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            doc.add_paragraph()
 
     for line in lines:
         line_stripped = line.strip()
@@ -350,18 +361,27 @@ if datos_generar:
             response = client.chat.completions.create(
                 model="glm-4",  # Asegúrate de usar el modelo correcto según tu tier (glm-3-turbo o glm-4)
                 messages=[
-                    {"role": "system", "content": "Eres un redactor técnico experto en educación. Usa Markdown, formatea tablas correctamente y sé detallado."},
+                    {"role": "system", "content": "Eres un redactor técnico experto en educación. Usa Markdown, formatea tablas correctamente y sé detallado. Nunca dejes celdas vacías en las tablas."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.7
             )
             
-            st.session_state.resultado_generado = response.choices[0].message.content
+            # Limpiamos el texto por si la IA añade bloques de código residuales al inicio/fin
+            texto_respuesta = response.choices[0].message.content
+            texto_respuesta = re.sub(r'^```markdown\n?', '', texto_respuesta)
+            texto_respuesta = re.sub(r'\n?```$', '', texto_respuesta)
+            
+            st.session_state.resultado_generado = texto_respuesta
             st.session_state.tipo_doc_actual = datos_generar['tipo_doc']
             st.success("¡Documento pedagógico generado exitosamente!")
             
         except Exception as e:
-            st.error(f"❌ Ocurrió un error al conectar con la IA: {str(e)}")
+            error_msg = str(e)
+            if "authentication" in error_msg.lower() or "api_key" in error_msg.lower() or "401" in error_msg:
+                st.error("❌ Error de Autorización: Tu API Key de ZhipuAI es incorrecta o inválida.")
+            else:
+                st.error(f"❌ Ocurrió un error al conectar con la IA: {error_msg}")
 
 # --- 6. PREVISUALIZACIÓN Y DESCARGA ---
 if st.session_state.resultado_generado:
