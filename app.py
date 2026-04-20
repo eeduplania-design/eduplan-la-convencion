@@ -291,43 +291,50 @@ with st.sidebar:
 tab1, tab2, tab3 = st.tabs(["📝 Sesión de Aprendizaje", "📚 Unidad Didáctica", "📅 Programación Anual"])
 
 def form_ui(tipo_doc):
-    with st.form(f"form_{tipo_doc}"):
-        col1, col2 = st.columns(2)
+    # SOLUCIÓN: Quitamos 'with st.form' y agregamos 'key' a cada widget para que se actualicen en tiempo real
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        docente = st.text_input("Nombre del Docente", help="Aparecerá en los datos informativos.", key=f"doc_{tipo_doc}")
+        ie = st.text_input("Institución Educativa", help="Nombre o número del colegio.", key=f"ie_{tipo_doc}")
         
-        with col1:
-            docente = st.text_input("Nombre del Docente", help="Aparecerá en los datos informativos.")
-            ie = st.text_input("Institución Educativa", help="Nombre o número del colegio.")
-            nivel = st.selectbox("Nivel Educativo", list(NIVELES_GRADOS.keys()))
-            grado = st.selectbox("Grado/Edad", NIVELES_GRADOS[nivel])
+        # Al seleccionar el nivel, el script se actualiza al instante
+        nivel = st.selectbox("Nivel Educativo", list(NIVELES_GRADOS.keys()), key=f"niv_{tipo_doc}")
+        
+        # Y muestra los grados correspondientes al nivel de arriba
+        grado = st.selectbox("Grado/Edad", NIVELES_GRADOS[nivel], key=f"gra_{tipo_doc}")
+        
+    with col2:
+        # Muestra las áreas del nivel seleccionado
+        area = st.selectbox("Área Curricular", AREAS_NIVEL[nivel], key=f"area_{tipo_doc}")
+        tema = st.text_input("Tema / Título Principal", help="Ej. 'Conocemos el ciclo del agua'", key=f"tema_{tipo_doc}")
+        enfoque = st.selectbox("Enfoque Transversal", ENFOQUES_TRANSVERSALES, key=f"enf_{tipo_doc}")
+        duracion = st.text_input("Duración", value="90 minutos (2 horas pedagógicas)", key=f"dur_{tipo_doc}")
+
+    contexto = st.text_area("Situación Significativa / Contexto local", help="Describe brevemente la realidad de los estudiantes o problemática local. (Opcional pero recomendado).", key=f"ctx_{tipo_doc}")
+    
+    producto = ""
+    if tipo_doc == "Unidad Didáctica":
+        producto = st.text_input("Producto Final Esperado", help="Ej. 'Un afiche sobre el cuidado del medio ambiente'", key=f"prod_{tipo_doc}")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    # Reemplazamos st.form_submit_button por st.button
+    submitted = st.button(f"🚀 Generar {tipo_doc} con IA", key=f"btn_{tipo_doc}", use_container_width=True)
+    
+    if submitted:
+        if not api_key:
+            st.error("⚠️ Por favor, ingresa tu API Key en la barra lateral izquierda.")
+            return None
+        if not docente or not tema:
+            st.warning("⚠️ El Nombre del docente y el Tema son obligatorios.")
+            return None
             
-        with col2:
-            area = st.selectbox("Área Curricular", AREAS_NIVEL[nivel])
-            tema = st.text_input("Tema / Título Principal", help="Ej. 'Conocemos el ciclo del agua'")
-            enfoque = st.selectbox("Enfoque Transversal", ENFOQUES_TRANSVERSALES)
-            duracion = st.text_input("Duración", value="90 minutos (2 horas pedagógicas)")
-
-        contexto = st.text_area("Situación Significativa / Contexto local", help="Describe brevemente la realidad de los estudiantes o problemática local. (Opcional pero recomendado).")
-        
-        producto = ""
-        if tipo_doc == "Unidad Didáctica":
-            producto = st.text_input("Producto Final Esperado", help="Ej. 'Un afiche sobre el cuidado del medio ambiente'")
-
-        submitted = st.form_submit_button(f"🚀 Generar {tipo_doc} con IA")
-        
-        if submitted:
-            if not api_key:
-                st.error("⚠️ Por favor, ingresa tu API Key en la barra lateral izquierda.")
-                return None
-            if not docente or not tema:
-                st.warning("⚠️ El Nombre del docente y el Tema son obligatorios.")
-                return None
-                
-            return {
-                "tipo_doc": tipo_doc,
-                "docente": docente, "ie": ie, "nivel": nivel, "grado": grado,
-                "area": area, "tema": tema, "enfoque": enfoque, "duracion": duracion,
-                "contexto": contexto, "producto": producto
-            }
+        return {
+            "tipo_doc": tipo_doc,
+            "docente": docente, "ie": ie, "nivel": nivel, "grado": grado,
+            "area": area, "tema": tema, "enfoque": enfoque, "duracion": duracion,
+            "contexto": contexto, "producto": producto
+        }
     return None
 
 # Renderizado de Formularios
