@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 # ==========================================
 # 2. DATOS MAESTROS Y CSS PREMIUM
 # ==========================================
-@st.cache_data
+# Nota: NO usamos @st.cache_data aquí para evitar el error "unhashable type: 'dict'"
 def get_master_data() -> dict:
     return {
         "NOMBRE_APP": "EduPlan IA Premium",
@@ -52,7 +52,7 @@ def get_master_data() -> dict:
     }
 
 def apply_custom_css():
-    """Inyecta CSS para darle aspecto de SaaS de pago (Superando a planifica.net)"""
+    """Inyecta CSS para darle aspecto de SaaS de pago"""
     st.markdown("""
         <style>
         /* Estilos generales */
@@ -89,7 +89,7 @@ def apply_custom_css():
     """, unsafe_allow_html=True)
 
 # ==========================================
-# 3. EL CEREBRO: PROMPT ENGINEERING (SUPERIOR AL COMPETIDOR)
+# 3. EL CEREBRO: PROMPT ENGINEERING
 # ==========================================
 class PromptFactory:
     @staticmethod
@@ -154,10 +154,17 @@ class PromptFactory:
 
 class AIService:
     def __init__(self):
-        api_key = st.secrets.get("ZHIPUAI_API_KEY", os.getenv("ZHIPUAI_API_KEY"))
+        # Manejo robusto de la API Key: 1° Secrets (Cloud), 2° Variables de Entorno (Local)
+        api_key = None
+        try:
+            api_key = st.secrets["ZHIPUAI_API_KEY"]
+        except Exception:
+            api_key = os.getenv("ZHIPUAI_API_KEY")
+
         if not api_key:
-            st.error("Falta ZHIPUAI_API_KEY en los secretos/variables de entorno.")
+            st.error("⚠️ Faltan las credenciales. Configura ZHIPUAI_API_KEY en tu archivo .env o en st.secrets.")
             st.stop()
+            
         self.client = ZhipuAI(api_key=api_key)
         self.model = os.getenv("ZHIPUAI_MODEL", "glm-4")
 
@@ -175,7 +182,7 @@ class AIService:
             return response.choices[0].message.content
         except Exception as e:
             logger.error(f"Error AI: {e}")
-            st.error("Error al conectar con el cerebro de IA. Reintente.")
+            st.error("Ocurrió un error al conectar con el cerebro de IA. Por favor, reintenta en unos segundos.")
             return None
 
 # ==========================================
@@ -237,7 +244,6 @@ class DocumentGenerator:
                 p.add_run(linea.replace('**', '')).bold = True
             elif linea.startswith('- '):
                 p = doc.add_paragraph(style='List Bullet')
-                # Manejo simple de negritas dentro de viñetas
                 partes = linea[2:].split('**')
                 for i, parte in enumerate(partes):
                     run = p.add_run(parte)
@@ -273,7 +279,6 @@ def render_sidebar() -> dict:
         areas = ["Todas (Docente de Aula)"] if nivel == "Inicial" else data["AREAS_PRIMARIA_SECUNDARIA"]
         area = st.selectbox("Área", options=areas)
         
-        # KILLER FEATURE: DUA e Inclusión
         st.subheader("3. Atención a la Diversidad (DUA) 🌟")
         inclusion = st.text_area(
             "Necesidades Especiales en el aula (Opcional)", 
@@ -293,6 +298,7 @@ def render_generador(tipo_doc: str, tab_key: str, global_data: dict):
     with st.form(key=f"form_{tab_key}"):
         col1, col2 = st.columns(2)
         with col1:
+            # key es muy importante para que no choquen las pestañas
             grado = st.text_input("Grado / Ciclo", key=f"gr_{tab_key}", placeholder="Ej. 3ro de Secundaria")
         with col2:
             contexto = st.selectbox("Contexto / Situación Significativa", options=data["CONTEXTOS_LOCALES"], key=f"ctx_{tab_key}")
@@ -301,7 +307,7 @@ def render_generador(tipo_doc: str, tab_key: str, global_data: dict):
 
     if submit:
         if not global_data["ie_nombre"] or not grado:
-            st.error("⚠️ Falta llenar el Nombre de la I.E. (Izquierda) y el Grado (Arriba).")
+            st.error("⚠️ Falta llenar el Nombre de la I.E. (Panel Izquierdo) y el Grado antes de generar.")
             return
             
         with st.spinner(f"El Cerebro Pedagógico está diseñando tu {tipo_doc} y alineando rúbricas... 🧠"):
@@ -335,15 +341,17 @@ def render_generador(tipo_doc: str, tab_key: str, global_data: dict):
             metadata=st.session_state[f"meta_{tab_key}"]
         )
         
-        # Killer Feature de UX: Botón gigante resaltado
+        safe_filename = f"{tipo_doc}_{grado}_{global_data['area']}.docx".replace(" ", "_")
+        safe_filename = re.sub(r'[\\/*?:"<>|]', "", safe_filename)
+        
         st.download_button(
             label="📥 DESCARGAR DOCUMENTO EN WORD (.DOCX) LISTO PARA IMPRIMIR", 
             data=file_word, 
-            file_name=f"{tipo_doc}_{grado}_{global_data['area']}.docx".replace(" ", "_"), 
+            file_name=safe_filename, 
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             key=f"dl_{tab_key}",
             use_container_width=True,
-            type="primary" # Color rojo/principal de Streamlit
+            type="primary"
         )
 
 def main():
@@ -354,15 +362,15 @@ def main():
     st.title("🏆 EduPlan IA Premium: La Convención")
     st.markdown("*La plataforma definitiva para docentes. Planifica en segundos con Inteligencia Artificial y alineación exacta al CNEB.*")
     
-    # Métricas (Simulando un Dashboard SaaS de alto valor)
+    # Métricas Dashboard SaaS
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Alineación CNEB", "100%", "Ministerio de Educación")
+    col1.metric("Alineación CNEB", "100%", "MINEDU")
     col2.metric("Ahorro de Tiempo", "95%", "Automatizado")
-    col3.metric("Motor de IA", "GLM-4 Pedagógico", "Alta Precisión")
+    col3.metric("Motor de IA", "GLM-4 / CNEB", "Precisión")
     col4.metric("Diseño Universal", "DUA Integrado", "Inclusivo")
     st.divider()
     
-    # Carga de interfaz
+    # Carga de interfaz principal
     global_data = render_sidebar()
     
     tab1, tab2, tab3 = st.tabs(["📅 Programación Anual", "📚 Unidad Didáctica", "📝 Sesión de Aprendizaje"])
