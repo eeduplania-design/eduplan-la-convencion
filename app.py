@@ -152,7 +152,7 @@ def add_header_footer(doc):
     # Encabezado
     header = section.header
     h_p = header.paragraphs[0]
-    h_p.text = "MINISTERIO DE EDUCACIÓN DEL PERÚ\nPlanificación Curricular - CNEB"
+    h_p.text = "EDUPLAN IA - MINISTERIO DE EDUCACIÓN DEL PERÚ\nPlanificación Curricular - CNEB"
     h_p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
     for run in h_p.runs:
         run.font.size = Pt(8)
