@@ -14,7 +14,7 @@ import urllib.parse
 import time
 
 # --- 1. CONFIGURACIÓN INICIAL Y DATOS MAESTROS ---
-st.set_page_config(page_title="EDUPLAN IA - MINEDU", layout="wide", page_icon="🇵🇪")
+st.set_page_config(page_title="EDUPLAN IA", layout="wide", page_icon="🇵🇪")
 
 NOMBRE_APP = "EDUPLAN IA - SISTEMA EXPERTO MINEDU"
 ANIO_ACTUAL = datetime.datetime.now().year
