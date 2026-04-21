@@ -75,11 +75,7 @@ Estrictamente adaptado a:
 REGLAS DE FORMATO (CRÍTICAS PARA EL PARSEO A WORD):
 1. Usa Markdown estándar. Usa # para Título Principal, ## para Secciones, ### para Subsecciones.
 2. Usa tablas Markdown para matrices, competencias, criterios y rúbricas. (Ejemplo: | Col1 | Col2 |). NUNCA dejes celdas vacías, pon "-".
-3. Para Sesiones de Aprendizaje, debes incluir detalladamente: Inicio, Desarrollo y Cierre.
-4. Al final de la Sesión, debes generar DOS ANEXOS:
-   - ANEXO 1: Instrumento de evaluación ({instrumento} en formato TABLA). Aplica el formato correspondiente.
-   - ANEXO 2: Ficha de Aplicación para el estudiante adaptada al nivel cognitivo de {grado} de {nivel}.
-5. Si necesitas que en la Ficha haya una imagen ilustrativa, inserta EXACTAMENTE esta etiqueta: [IMAGEN_SUGERIDA: breve descripción en ingles].
+3. Si necesitas que en la Ficha haya una imagen ilustrativa, inserta EXACTAMENTE esta etiqueta: [IMAGEN_SUGERIDA: breve descripción en ingles].
 
 Información ingresada por el docente:
 - Docente: {datos.get('docente')}
@@ -95,17 +91,49 @@ Información ingresada por el docente:
         base_prompt += f"\nEstructura: 1. Datos Generales. 2. Situación Significativa. 3. Propósitos de Aprendizaje. 4. Criterios, Evidencias e Instrumentos. 5. Secuencia de Sesiones (Tabla con N° de sesión, Título y Descripción breve). Producto final: {datos.get('producto', 'No especificado')}."
     elif tipo_doc == "Sesión de Aprendizaje":
         base_prompt += f"""
-Estructura: 1. Datos Informativos. 2. Título. 3. Propósitos (Tabla Competencia/Capacidad/Desempeño/Criterio/Evidencia). 4. Enfoques. 5. Preparación. 6. Momentos (Inicio, Desarrollo -con procesos didácticos del área-, Cierre). 7. Reflexiones. 8. Anexos (Instrumento y Ficha).
+ES OBLIGATORIO QUE TU RESPUESTA SIGA EXACTAMENTE ESTA ESTRUCTURA MARKDOWN.
+COPIA ESTA PLANTILLA EXACTA Y LLENA LOS DATOS, RESPETA LA TABLA DE MOMENTOS AL PIE DE LA LETRA:
 
-✅ RECOMENDACIONES DEL MINEDU PARA EL INSTRUMENTO SELECCIONADO ({instrumento}):
-- Los instrumentos deben estar alineados a las competencias del CNEB.
-- Se prioriza la evaluación formativa: retroalimentación constante y oportuna.
-- Si elegiste Rúbricas: Construye una Matriz con criterios y niveles de logro (inicio, en proceso, logrado, destacado).
-- Si elegiste Listas de cotejo: Crea un registro de verificación de aspectos cumplidos o no (sí/no) con indicadores claros.
-- Si elegiste Escalas de valoración: Mide frecuencia o calidad en una escala (siempre, a veces, nunca).
-- Si elegiste Fichas de observación: Haz un documento para registrar conductas o desempeños observados.
-- Si elegiste Portafolio: Lista la colección de evidencias del aprendizaje sugeridas.
-- Aplica este diseño detallado al construir el ANEXO 1.
+## SESIÓN DE APRENDIZAJE: {datos.get('tema', 'Título de la sesión')}
+
+### 1. DATOS INFORMATIVOS
+- **Docente:** {datos.get('docente')}
+- **Institución Educativa:** {datos.get('ie')}
+- **Nivel y Grado:** {nivel} - {grado} (Ciclo {ciclo})
+- **Área:** {area}
+- **Duración:** {datos.get('duracion', '90 minutos')}
+- **Enfoque Transversal:** {datos.get('enfoque')}
+
+### 2. PROPÓSITOS DE APRENDIZAJE
+| Competencias / Capacidades | Desempeños precisados | Criterios de Evaluación | Evidencia de Aprendizaje |
+|---|---|---|---|
+| (Llenar aquí) | (Llenar aquí) | (Llenar aquí) | (Llenar aquí) |
+
+### 3. PREPARACIÓN DE LA SESIÓN
+(Describe qué hacer antes y qué materiales se usarán)
+
+### 4. MOMENTOS DE LA SESIÓN
+¡ATENCIÓN! ESTA SECCIÓN DEBE SER ESTRICTAMENTE ESTA TABLA. NO ESCRIBAS PÁRRAFOS AFUERA.
+| MOMENTOS | ESTRATEGIAS / ACTIVIDADES | TIEMPO |
+|---|---|---|
+| **INICIO** | **Motivación, recuperación de saberes previos, problematización, propósito y criterios.**<br><br>(Redacta aquí las actividades detalladas) | (Ej. 15 min) |
+| **DESARROLLO** | **Procesos didácticos del área.**<br><br>(Redacta aquí las actividades centrales y acompañamiento) | (Ej. 60 min) |
+| **CIERRE** | **Evaluación formativa y metacognición.**<br><br>(Redacta aquí las preguntas de reflexión y cierre) | (Ej. 15 min) |
+
+### 5. REFLEXIONES SOBRE EL APRENDIZAJE
+- ¿Qué avances tuvieron los estudiantes?
+- ¿Qué dificultades se observaron?
+- ¿Qué aprendizajes debo reforzar?
+
+### 6. ANEXOS
+#### ANEXO 1: INSTRUMENTO DE EVALUACIÓN ({instrumento})
+(Genera estrictamente una tabla para el instrumento: {instrumento}. 
+Si elegiste Rúbricas: Matriz con criterios y niveles (inicio, proceso, logrado).
+Si elegiste Listas de cotejo: Cuadro de doble entrada con Sí/No.
+Si elegiste Escalas: Escala de siempre/a veces/nunca.)
+
+#### ANEXO 2: FICHA DE APLICACIÓN PARA EL ESTUDIANTE
+(Crea una ficha de trabajo para los alumnos. OBLIGATORIO: Inserta la etiqueta [IMAGEN_SUGERIDA: descripción de imagen en inglés] donde vaya un dibujo).
 """
 
     return base_prompt
@@ -179,7 +207,8 @@ def markdown_to_docx(markdown_text):
                 cells_text = [c.strip() for c in row.split('|')[1:-1]]
                 for j in range(min(num_cols, len(cells_text))):
                     cell = table.cell(i, j)
-                    text = cells_text[j].replace('**', '')
+                    # Agregamos soporte para saltos de línea (<br>) obligatorios en la tabla de momentos
+                    text = cells_text[j].replace('**', '').replace('<br>', '\n')
                     cell.text = text
                     
                     # Formato Encabezado de Tabla (Fila 0)
