@@ -25,6 +25,14 @@ ENFOQUES_TRANSVERSALES = [
     "Orientación al bien común", "Búsqueda de la Excelencia"
 ]
 
+INSTRUMENTOS_EVALUACION = [
+    "Rúbricas",
+    "Listas de cotejo",
+    "Escalas de valoración",
+    "Fichas de observación",
+    "Portafolio"
+]
+
 NIVELES_GRADOS = {
     "Inicial": ["3 años", "4 años", "5 años"],
     "Primaria": ["1ro", "2do", "3ro", "4to", "5to", "6to"],
@@ -54,6 +62,7 @@ def generar_prompt_cneb(tipo_doc, datos):
     grado = datos.get("grado")
     area = datos.get("area")
     ciclo = obtener_ciclo(nivel, grado)
+    instrumento = datos.get("instrumento", "Rúbricas")
     
     base_prompt = f"""Eres un Especialista Senior del MINEDU de Perú con más de 20 años de experiencia. 
 Tu tarea es redactar un/una '{tipo_doc}' de nivel profesional, alineado al CNEB (Currículo Nacional).
@@ -68,7 +77,7 @@ REGLAS DE FORMATO (CRÍTICAS PARA EL PARSEO A WORD):
 2. Usa tablas Markdown para matrices, competencias, criterios y rúbricas. (Ejemplo: | Col1 | Col2 |). NUNCA dejes celdas vacías, pon "-".
 3. Para Sesiones de Aprendizaje, debes incluir detalladamente: Inicio, Desarrollo y Cierre.
 4. Al final de la Sesión, debes generar DOS ANEXOS:
-   - ANEXO 1: Instrumento de evaluación (Rúbrica o Lista de Cotejo en formato TABLA).
+   - ANEXO 1: Instrumento de evaluación ({instrumento} en formato TABLA). Aplica el formato correspondiente.
    - ANEXO 2: Ficha de Aplicación para el estudiante adaptada al nivel cognitivo de {grado} de {nivel}.
 5. Si necesitas que en la Ficha haya una imagen ilustrativa, inserta EXACTAMENTE esta etiqueta: [IMAGEN_SUGERIDA: breve descripción en ingles].
 
@@ -85,7 +94,19 @@ Información ingresada por el docente:
     elif tipo_doc == "Unidad Didáctica":
         base_prompt += f"\nEstructura: 1. Datos Generales. 2. Situación Significativa. 3. Propósitos de Aprendizaje. 4. Criterios, Evidencias e Instrumentos. 5. Secuencia de Sesiones (Tabla con N° de sesión, Título y Descripción breve). Producto final: {datos.get('producto', 'No especificado')}."
     elif tipo_doc == "Sesión de Aprendizaje":
-        base_prompt += "\nEstructura: 1. Datos Informativos. 2. Título. 3. Propósitos (Tabla Competencia/Capacidad/Desempeño/Criterio/Evidencia). 4. Enfoques. 5. Preparación. 6. Momentos (Inicio, Desarrollo -con procesos didácticos del área-, Cierre). 7. Reflexiones. 8. Anexos (Instrumento y Ficha)."
+        base_prompt += f"""
+Estructura: 1. Datos Informativos. 2. Título. 3. Propósitos (Tabla Competencia/Capacidad/Desempeño/Criterio/Evidencia). 4. Enfoques. 5. Preparación. 6. Momentos (Inicio, Desarrollo -con procesos didácticos del área-, Cierre). 7. Reflexiones. 8. Anexos (Instrumento y Ficha).
+
+✅ RECOMENDACIONES DEL MINEDU PARA EL INSTRUMENTO SELECCIONADO ({instrumento}):
+- Los instrumentos deben estar alineados a las competencias del CNEB.
+- Se prioriza la evaluación formativa: retroalimentación constante y oportuna.
+- Si elegiste Rúbricas: Construye una Matriz con criterios y niveles de logro (inicio, en proceso, logrado, destacado).
+- Si elegiste Listas de cotejo: Crea un registro de verificación de aspectos cumplidos o no (sí/no) con indicadores claros.
+- Si elegiste Escalas de valoración: Mide frecuencia o calidad en una escala (siempre, a veces, nunca).
+- Si elegiste Fichas de observación: Haz un documento para registrar conductas o desempeños observados.
+- Si elegiste Portafolio: Lista la colección de evidencias del aprendizaje sugeridas.
+- Aplica este diseño detallado al construir el ANEXO 1.
+"""
 
     return base_prompt
 
@@ -106,15 +127,6 @@ def add_header_footer(doc):
     h_p.text = "MINISTERIO DE EDUCACIÓN DEL PERÚ\nPlanificación Curricular - CNEB"
     h_p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
     for run in h_p.runs:
-        run.font.size = Pt(8)
-        run.font.color.rgb = RGBColor(128, 128, 128)
-
-    # Pie de página
-    footer = section.footer
-    f_p = footer.paragraphs[0]
-    f_p.text = f"Generado por EDUPLAN IA © {ANIO_ACTUAL} - Documento de Trabajo Pedagógico"
-    f_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    for run in f_p.runs:
         run.font.size = Pt(8)
         run.font.color.rgb = RGBColor(128, 128, 128)
 
@@ -325,7 +337,21 @@ def form_ui(tipo_doc):
         area = st.selectbox("Área Curricular", AREAS_NIVEL[nivel], key=area_key)
         tema = st.text_input("Tema / Título Principal", help="Ej. 'Conocemos el ciclo del agua'", key=f"tema_{tipo_doc}")
         enfoque = st.selectbox("Enfoque Transversal", ENFOQUES_TRANSVERSALES, key=f"enf_{tipo_doc}")
-        duracion = st.text_input("Duración", value="90 minutos (2 horas pedagógicas)", key=f"dur_{tipo_doc}")
+        
+        if tipo_doc == "Sesión de Aprendizaje":
+            minutos = st.number_input("Duración (minutos)", min_value=15, max_value=300, value=90, step=15, help="Escoge el tiempo en minutos para la sesión.", key=f"dur_{tipo_doc}")
+            duracion = f"{minutos} minutos"
+        else:
+            duracion = st.text_input("Duración", value="Aproximadamente 4 semanas", key=f"dur_{tipo_doc}")
+
+        instrumento = None
+        if tipo_doc == "Sesión de Aprendizaje":
+            instrumento = st.selectbox(
+                "📊 Instrumento de Evaluación", 
+                INSTRUMENTOS_EVALUACION, 
+                help="Selecciona el instrumento según CNEB que la IA diseñará al final de la sesión.",
+                key=f"inst_{tipo_doc}"
+            )
 
     contexto = st.text_area("Situación Significativa / Contexto local", help="Describe brevemente la realidad de los estudiantes o problemática local. (Opcional pero recomendado).", key=f"ctx_{tipo_doc}")
     
@@ -349,7 +375,7 @@ def form_ui(tipo_doc):
             "tipo_doc": tipo_doc,
             "docente": docente, "ie": ie, "nivel": nivel, "grado": grado,
             "area": area, "tema": tema, "enfoque": enfoque, "duracion": duracion,
-            "contexto": contexto, "producto": producto
+            "contexto": contexto, "producto": producto, "instrumento": instrumento
         }
     return None
 
